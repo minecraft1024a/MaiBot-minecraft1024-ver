@@ -36,6 +36,7 @@ def init_prompt():
 {prompt_info}
 {chat_target}
 现在时间是：{now_time}
+{current_activity_block}
 {chat_talking_prompt}
 现在"{sender_name}"说的:{message_txt}。引起了你的注意，你想要在群里发言或者回复这条消息。\n
 你的网名叫{bot_name}，有人也叫你{bot_other_names}，{prompt_personality}。
@@ -65,6 +66,7 @@ def init_prompt():
 {grammar_habbits}
 {memory_prompt}
 {prompt_info}
+{current_activity_block}
 你正在和 {sender_name} 聊天。
 {relation_prompt}
 你们之前的聊天记录如下：
@@ -135,7 +137,7 @@ class PromptBuilder:
         if global_config.relationship.enable_relationship:
             for person in who_chat_in_group:
                 relationship_manager = get_relationship_manager()
-                relation_prompt += f"{await relationship_manager.build_relationship_info(person)}\n"
+                relation_prompt += await relationship_manager.build_relationship_info(person)
 
         mood_prompt = mood_manager.get_mood_prompt()
 
@@ -170,7 +172,7 @@ class PromptBuilder:
         message_list_before_now_half = get_raw_msg_before_timestamp_with_chat(
             chat_id=chat_stream.stream_id,
             timestamp=time.time(),
-            limit=int(global_config.focus_chat.observation_context_size * 0.5),
+            limit=global_config.focus_chat.observation_context_size * 0.5,
         )
         chat_talking_prompt_half = build_readable_messages(
             message_list_before_now_half,
@@ -254,6 +256,20 @@ class PromptBuilder:
 
         now_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
+        # 获取“现在做的事”信息
+        try:
+            from src.schedule_system.schedule_manager import CurrentActivityRecord
+
+            # 查询最近一条“现在做的事”
+            latest_activity = CurrentActivityRecord.select().order_by(CurrentActivityRecord.timestamp.desc()).first()
+            if latest_activity and latest_activity.activity_text:
+                current_activity_block = f"你现在正在做的事：{latest_activity.activity_text}"
+            else:
+                current_activity_block = ""
+        except Exception as e:
+            logger.error(f"获取现在做的事失败: {e}")
+            current_activity_block = ""
+
         # --- Choose template and format based on chat type ---
         if is_group_chat:
             template_name = "reasoning_prompt_main"
@@ -281,6 +297,7 @@ class PromptBuilder:
                 moderation_prompt=moderation_prompt_block,
                 now_time=now_time,
                 action_descriptions=action_descriptions,
+                current_activity_block=current_activity_block,
             )
         else:
             template_name = "reasoning_prompt_private_main"
@@ -304,6 +321,7 @@ class PromptBuilder:
                 moderation_prompt=moderation_prompt_block,
                 now_time=now_time,
                 action_descriptions=action_descriptions,
+                current_activity_block=current_activity_block,
             )
         # --- End choosing template ---
 

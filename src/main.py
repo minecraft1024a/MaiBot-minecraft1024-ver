@@ -34,6 +34,10 @@ from src.common.message import get_global_api
 if global_config.memory.enable_memory:
     from src.chat.memory_system.Hippocampus import hippocampus_manager
 
+# 导入日程表管理器
+from src.schedule_system.schedule_manager import ScheduleManager
+from src.schedule_system.schedule_auto_refresh_task import ScheduleAutoRefreshTask
+
 # 插件系统现在使用统一的插件加载器
 
 install(extra_lines=3)
@@ -56,6 +60,12 @@ class MainSystem:
         # 使用消息API替代直接的FastAPI实例
         self.app: MessageServer = get_global_api()
         self.server: Server = get_global_server()
+
+        # 日程表系统集成
+        self.schedule_manager = ScheduleManager(
+            config=global_config.schedule.__dict__,
+            model_config=global_config.model.schedule
+        )
 
     async def initialize(self):
         """初始化系统组件"""
@@ -145,12 +155,34 @@ class MainSystem:
             # 启动心流系统主循环
             asyncio.create_task(heartflow.heartflow_start_working())
             logger.info("心流系统启动成功")
-
-            init_time = int(1000 * (time.time() - init_start_time))
-            logger.info(f"初始化完成，神经元放电{init_time}次")
         except Exception as e:
             logger.error(f"启动大脑和外部世界失败: {e}")
             raise
+
+        # 日程表系统：启动时自动检查今天是否有日程，没有则刷新
+        try:
+            logger.info("正在初始化日程表系统...")
+            await self.schedule_manager.ensure_today_schedule()
+            # 添加日程表自动刷新任务
+            await async_task_manager.add_task(ScheduleAutoRefreshTask(self.schedule_manager))
+            # 创建一个json测试文件，写入日程表内容
+            import json
+            schedule_content = None
+            try:
+                schedule_content = self.schedule_manager.get_today_schedule()
+            except Exception as e:
+                logger.warning(f"获取今日日程内容失败: {e}")
+            with open("data/schedule_test.json", "w", encoding="utf-8") as f:
+                json.dump({
+                    "status": "schedule system started",
+                    "today_schedule": schedule_content
+                }, f, ensure_ascii=False, indent=2)
+            logger.info("日程表系统初始化成功，并已创建测试文件 data/schedule_test.json")
+        except Exception as e:
+            logger.error(f"日程表系统初始化失败: {e}")
+
+        init_time = int(1000 * (time.time() - init_start_time))
+        logger.info(f"初始化完成，神经元放电{init_time}次")
 
     async def schedule_tasks(self):
         """调度定时任务"""
@@ -160,6 +192,8 @@ class MainSystem:
                 self.remove_recalled_message_task(),
                 self.app.run(),
                 self.server.run(),
+                # 日程表自动刷新任务
+                self.schedule_manager.auto_refresh(),
             ]
 
             # 根据配置条件性地添加记忆系统相关任务

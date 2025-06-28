@@ -15,6 +15,7 @@ from src.common.database.database_model import LLMUsage  # 导入 LLMUsage 模�
 from src.config.config import global_config
 from src.common.tcp_connector import get_tcp_connector
 from rich.traceback import install
+import threading
 
 install(extra_lines=3)
 
@@ -88,6 +89,25 @@ async def _safely_record(request_content: Dict[str, Any], payload: Dict[str, Any
     return payload
 
 
+class APIKeyRotator:
+    """API key 轮询器，支持多key自动切换，线程/协程安全"""
+    def __init__(self, keys: list):
+        self.keys = keys
+        self.lock = threading.Lock()
+        self.index = 0
+        self.total = len(keys)
+
+    def get_key(self) -> str:
+        with self.lock:
+            key = self.keys[self.index]
+            self.index = (self.index + 1) % self.total
+            return key
+
+    def set_invalid(self, key: str):
+        # 可扩展：如遇到失效key可移除或标记
+        pass
+
+
 class LLMRequest:
     # 定义需要转换的模型列表，作为类变量避免重复
     MODELS_NEEDING_TRANSFORMATION = [
@@ -137,6 +157,17 @@ class LLMRequest:
 
         # 从 kwargs 中提取 request_type，如果没有提供则默认为 "default"
         self.request_type = kwargs.pop("request_type", "default")
+
+        # 支持API key轮询
+        key_env = f"{model['provider']}_KEY"
+        keys = os.environ.get(key_env, "").split(",")
+        keys = [k.strip() for k in keys if k.strip()]
+        if len(keys) > 1:
+            self.key_rotator = APIKeyRotator(keys)
+            self.api_key = self.key_rotator.get_key()
+        else:
+            self.key_rotator = None
+            self.api_key = keys[0] if keys else None
 
     @staticmethod
     def _init_database():

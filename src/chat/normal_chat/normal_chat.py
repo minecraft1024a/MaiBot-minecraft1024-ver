@@ -22,7 +22,7 @@ from src.chat.focus_chat.planners.action_manager import ActionManager
 from src.chat.normal_chat.normal_chat_planner import NormalChatPlanner
 from src.chat.normal_chat.normal_chat_action_modifier import NormalChatActionModifier
 from src.chat.normal_chat.normal_chat_expressor import NormalChatExpressor
-from src.chat.replyer.default_generator import DefaultReplyer
+from src.chat.focus_chat.replyer.default_generator import DefaultReplyer
 from src.person_info.person_info import PersonInfoManager
 from src.person_info.relationship_manager import get_relationship_manager
 from src.chat.utils.chat_message_builder import (
@@ -183,7 +183,7 @@ class NormalChat:
                 "message_count": self._count_messages_in_timerange(potential_start_time, message_time),
             }
             segments.append(new_segment)
-            logger.debug(
+            logger.info(
                 f"[{self.stream_name}] 为用户 {person_id} 创建新消息段: 时间范围 {time.strftime('%H:%M:%S', time.localtime(potential_start_time))} - {time.strftime('%H:%M:%S', time.localtime(message_time))}, 消息数: {new_segment['message_count']}"
             )
             self._save_cache()
@@ -230,7 +230,7 @@ class NormalChat:
                 "message_count": self._count_messages_in_timerange(potential_start_time, message_time),
             }
             segments.append(new_segment)
-            logger.debug(f"[{self.stream_name}] 为用户 {person_id} 创建新消息段（超过10条消息间隔）: {new_segment}")
+            logger.info(f"[{self.stream_name}] 为用户 {person_id} 创建新消息段（超过10条消息间隔）: {new_segment}")
 
         self._save_cache()
 

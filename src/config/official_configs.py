@@ -106,6 +106,10 @@ class ChatConfig(ConfigBase):
     exit_focus_threshold: float = 1.0
     """自动退出专注聊天的阈值，越低越容易退出专注聊天"""
 
+    mute_duration: int = 300  # 触发闭嘴时禁言时长（秒），如300为5分钟
+    mute_keywords: list[str] = field(default_factory=lambda: ["闭嘴", "别说话", "shut up"])  # 触发禁言的关键词
+    mute_enable: bool = True
+
     def get_current_talk_frequency(self, chat_stream_id: str = None) -> float:
         """
         根据当前时间和聊天流获取对应的 talk_frequency
@@ -367,6 +371,12 @@ class EmojiConfig(ConfigBase):
 
     max_reg_num: int = 200
     """表情包最大注册数量"""
+
+    scan_batch_size: int = 20
+    """一次性扫描的表情包数量"""
+
+    max_cache_num: int = 100
+    """最大缓存数量，超过该数量会清理缓存目录下的所有表情包"""
 
     do_replace: bool = True
     """达到最大注册数量时替换旧表情包"""
@@ -676,3 +686,14 @@ class ModelConfig(ConfigBase):
 
     pfc_reply_checker: dict[str, Any] = field(default_factory=lambda: {})
     """PFC回复检查模型配置"""
+
+    schedule: dict = field(default_factory=lambda: {})
+    """日程表专用模型配置"""
+
+
+@dataclass
+class ScheduleConfig(ConfigBase):
+    """
+    日程表系统配置
+    """
+    refresh_prompt: str = "请生成今天的日程安排，格式为JSON数组，每项包含date、time和event。"

@@ -319,6 +319,7 @@ def reconfigure_existing_loggers():
 # 定义模块颜色映射
 MODULE_COLORS = {
     # 核心模块
+    "schedule": "\033[1;95m",  # 亮紫色+粗体 (日程管理)
     "main": "\033[1;97m",  # 亮白色+粗体 (主程序)
     "api": "\033[92m",  # 亮绿色
     "emoji": "\033[92m",  # 亮绿色

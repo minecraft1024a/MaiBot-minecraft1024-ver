@@ -127,14 +127,7 @@ class RelationshipManager:
 
         nickname_str = await person_info_manager.get_value(person_id, "nickname")
         platform = await person_info_manager.get_value(person_id, "platform")
-
-        if person_name == nickname_str and not short_impression:
-            return ""
-
-        if person_name == nickname_str:
-            relation_prompt = f"'{person_name}' :"
-        else:
-            relation_prompt = f"'{person_name}' ，ta在{platform}上的昵称是{nickname_str}。"
+        relation_prompt = f"'{person_name}' ，ta在{platform}上的昵称是{nickname_str}。"
 
         if short_impression:
             relation_prompt += f"你对ta的印象是：{short_impression}。"

@@ -112,13 +112,6 @@ class HeartFChatting:
 
         self.memory_activator = MemoryActivator()
 
-        # 新增：消息计数器和疲惫阈值
-        self._message_count = 0  # 发送的消息计数
-        # 基于exit_focus_threshold动态计算疲惫阈值
-        # 基础值30条，通过exit_focus_threshold调节：threshold越小，越容易疲惫
-        self._message_threshold = max(10, int(30 * global_config.chat.exit_focus_threshold))
-        self._fatigue_triggered = False  # 是否已触发疲惫退出
-
         # 初始化观察器
         self.observations: List[Observation] = []
         self._register_observations()
@@ -183,10 +176,6 @@ class HeartFChatting:
         # 如果没有指定版本号，则使用全局版本管理器的版本号
         actual_version = performance_version or get_hfc_version()
         self.performance_logger = HFCPerformanceLogger(chat_id, actual_version)
-
-        logger.info(
-            f"{self.log_prefix} HeartFChatting 初始化完成，消息疲惫阈值: {self._message_threshold}条（基于exit_focus_threshold={global_config.chat.exit_focus_threshold}计算，仅在auto模式下生效）"
-        )
 
     def _register_observations(self):
         """注册所有观察器"""
@@ -300,9 +289,6 @@ class HeartFChatting:
             return
 
         try:
-            # 重置消息计数器，开始新的focus会话
-            self.reset_message_count()
-
             # 标记为活动状态，防止重复启动
             self._loop_active = True
 
@@ -413,6 +399,7 @@ class HeartFChatting:
                                     "action_result": {
                                         "action_type": "error",
                                         "action_data": {},
+                                        "reasoning": f"上下文处理失败: {e}",
                                     },
                                     "observed_messages": "",
                                 },
@@ -649,8 +636,143 @@ class HeartFChatting:
 
         return all_plan_info, processor_time_costs
 
+    async def _process_post_planning_processors(self, observations: List[Observation], action_data: dict) -> dict:
+        """
+        处理后期处理器（规划后执行的处理器）
+        包括：关系处理器、表达选择器、记忆激活器
+
+        参数:
+            observations: 观察器列表
+            action_data: 原始动作数据
+
+        返回:
+            dict: 更新后的动作数据
+        """
+        logger.info(f"{self.log_prefix} 开始执行后期处理器")
+
+        # 创建所有后期任务
+        task_list = []
+        task_to_name_map = {}
+
+        # 添加后期处理器任务
+        for processor in self.post_planning_processors:
+            processor_name = processor.__class__.__name__
+
+            async def run_processor_with_timeout(proc=processor):
+                return await asyncio.wait_for(
+                    proc.process_info(observations=observations),
+                    timeout=global_config.focus_chat.processor_max_time,
+                )
+
+            task = asyncio.create_task(run_processor_with_timeout())
+            task_list.append(task)
+            task_to_name_map[task] = ("processor", processor_name)
+            logger.info(f"{self.log_prefix} 启动后期处理器任务: {processor_name}")
+
+        # 添加记忆激活器任务
+        async def run_memory_with_timeout():
+            return await asyncio.wait_for(
+                self.memory_activator.activate_memory(observations),
+                timeout=MEMORY_ACTIVATION_TIMEOUT,
+            )
+
+        memory_task = asyncio.create_task(run_memory_with_timeout())
+        task_list.append(memory_task)
+        task_to_name_map[memory_task] = ("memory", "MemoryActivator")
+        logger.info(f"{self.log_prefix} 启动记忆激活器任务")
+
+        # 如果没有任何后期任务，直接返回
+        if not task_list:
+            logger.info(f"{self.log_prefix} 没有启用的后期处理器或记忆激活器")
+            return action_data
+
+        # 等待所有任务完成
+        pending_tasks = set(task_list)
+        all_post_plan_info = []
+        running_memorys = []
+
+        while pending_tasks:
+            done, pending_tasks = await asyncio.wait(pending_tasks, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                task_type, task_name = task_to_name_map[task]
+
+                try:
+                    result = await task
+
+                    if task_type == "processor":
+                        logger.info(f"{self.log_prefix} 后期处理器 {task_name} 已完成!")
+                        if result is not None:
+                            all_post_plan_info.extend(result)
+                        else:
+                            logger.warning(f"{self.log_prefix} 后期处理器 {task_name} 返回了 None")
+                    elif task_type == "memory":
+                        logger.info(f"{self.log_prefix} 记忆激活器已完成!")
+                        if result is not None:
+                            running_memorys = result
+                        else:
+                            logger.warning(f"{self.log_prefix} 记忆激活器返回了 None")
+                            running_memorys = []
+
+                except asyncio.TimeoutError:
+                    if task_type == "processor":
+                        logger.warning(
+                            f"{self.log_prefix} 后期处理器 {task_name} 超时（>{global_config.focus_chat.processor_max_time}s），已跳过"
+                        )
+                    elif task_type == "memory":
+                        logger.warning(f"{self.log_prefix} 记忆激活器超时（>{MEMORY_ACTIVATION_TIMEOUT}s），已跳过")
+                        running_memorys = []
+                except Exception as e:
+                    if task_type == "processor":
+                        logger.error(
+                            f"{self.log_prefix} 后期处理器 {task_name} 执行失败. 错误: {e}",
+                            exc_info=True,
+                        )
+                    elif task_type == "memory":
+                        logger.error(f"{self.log_prefix} 记忆激活器执行失败. 错误: {e}", exc_info=True)
+                        running_memorys = []
+
+        # 将后期处理器的结果整合到 action_data 中
+        updated_action_data = action_data.copy()
+
+        relation_info = ""
+        selected_expressions = []
+        structured_info = ""
+
+        for info in all_post_plan_info:
+            if isinstance(info, RelationInfo):
+                relation_info = info.get_processed_info()
+            elif isinstance(info, ExpressionSelectionInfo):
+                selected_expressions = info.get_expressions_for_action_data()
+            elif isinstance(info, StructuredInfo):
+                structured_info = info.get_processed_info()
+
+        if relation_info:
+            updated_action_data["relation_info_block"] = relation_info
+
+        if selected_expressions:
+            updated_action_data["selected_expressions"] = selected_expressions
+
+        if structured_info:
+            updated_action_data["structured_info"] = structured_info
+
+        # 特殊处理running_memorys
+        if running_memorys:
+            memory_str = "以下是当前在聊天中，你回忆起的记忆：\n"
+            for running_memory in running_memorys:
+                memory_str += f"{running_memory['content']}\n"
+            updated_action_data["memory_block"] = memory_str
+            logger.info(f"{self.log_prefix} 添加了 {len(running_memorys)} 个激活的记忆到action_data")
+
+        if all_post_plan_info or running_memorys:
+            logger.info(
+                f"{self.log_prefix} 后期处理完成，产生了 {len(all_post_plan_info)} 个信息项和 {len(running_memorys)} 个记忆"
+            )
+
+        return updated_action_data
+
     async def _process_post_planning_processors_with_timing(
-        self, observations: List[Observation], action_type: str, action_data: dict
+        self, observations: List[Observation], action_data: dict
     ) -> tuple[dict, dict]:
         """
         处理后期处理器（规划后执行的处理器）并收集详细时间统计
@@ -658,7 +780,6 @@ class HeartFChatting:
 
         参数:
             observations: 观察器列表
-            action_type: 动作类型
             action_data: 原始动作数据
 
         返回:
@@ -680,7 +801,7 @@ class HeartFChatting:
                 start_time = time.time()
                 try:
                     result = await asyncio.wait_for(
-                        proc.process_info(observations=observations, action_type=action_type, action_data=action_data),
+                        proc.process_info(observations=observations),
                         timeout=global_config.focus_chat.processor_max_time,
                     )
                     end_time = time.time()
@@ -939,7 +1060,7 @@ class HeartFChatting:
                     # 记录详细的后处理器时间
                     post_start_time = time.time()
                     action_data, post_processor_time_costs = await self._process_post_planning_processors_with_timing(
-                        self.observations, action_type, action_data
+                        self.observations, action_data
                     )
                     post_end_time = time.time()
                     logger.info(f"{self.log_prefix} 后期处理器总耗时: {post_end_time - post_start_time:.3f}秒")
@@ -1043,31 +1164,6 @@ class HeartFChatting:
                 command = action_data["_system_command"]
                 logger.debug(f"{self.log_prefix} 从action_data中获取系统命令: {command}")
 
-            # 新增：消息计数和疲惫检查
-            if action == "reply" and success:
-                self._message_count += 1
-                current_threshold = self._get_current_fatigue_threshold()
-                logger.info(
-                    f"{self.log_prefix} 已发送第 {self._message_count} 条消息（动态阈值: {current_threshold}, exit_focus_threshold: {global_config.chat.exit_focus_threshold}）"
-                )
-
-                # 检查是否达到疲惫阈值（只有在auto模式下才会自动退出）
-                if (
-                    global_config.chat.chat_mode == "auto"
-                    and self._message_count >= current_threshold
-                    and not self._fatigue_triggered
-                ):
-                    self._fatigue_triggered = True
-                    logger.info(
-                        f"{self.log_prefix} [auto模式] 已发送 {self._message_count} 条消息，达到疲惫阈值 {current_threshold}，麦麦感到疲惫了，准备退出专注聊天模式"
-                    )
-                    # 设置系统命令，在下次循环检查时触发退出
-                    command = "stop_focus_chat"
-                elif self._message_count >= current_threshold and global_config.chat.chat_mode != "auto":
-                    logger.info(
-                        f"{self.log_prefix} [非auto模式] 已发送 {self._message_count} 条消息，达到疲惫阈值 {current_threshold}，但非auto模式不会自动退出"
-                    )
-
             logger.debug(f"{self.log_prefix} 麦麦执行了'{action}', 返回结果'{success}', '{reply_text}', '{command}'")
 
             return success, reply_text, command
@@ -1077,44 +1173,10 @@ class HeartFChatting:
             traceback.print_exc()
             return False, "", ""
 
-    def _get_current_fatigue_threshold(self) -> int:
-        """动态获取当前的疲惫阈值，基于exit_focus_threshold配置
-
-        Returns:
-            int: 当前的疲惫阈值
-        """
-        return max(10, int(30 / global_config.chat.exit_focus_threshold))
-
-    def get_message_count_info(self) -> dict:
-        """获取消息计数信息
-
-        Returns:
-            dict: 包含消息计数信息的字典
-        """
-        current_threshold = self._get_current_fatigue_threshold()
-        return {
-            "current_count": self._message_count,
-            "threshold": current_threshold,
-            "fatigue_triggered": self._fatigue_triggered,
-            "remaining": max(0, current_threshold - self._message_count),
-        }
-
-    def reset_message_count(self):
-        """重置消息计数器（用于重新启动focus模式时）"""
-        self._message_count = 0
-        self._fatigue_triggered = False
-        logger.info(f"{self.log_prefix} 消息计数器已重置")
-
     async def shutdown(self):
         """优雅关闭HeartFChatting实例，取消活动循环任务"""
         logger.info(f"{self.log_prefix} 正在关闭HeartFChatting...")
         self._shutting_down = True  # <-- 在开始关闭时设置标志位
-
-        # 记录最终的消息统计
-        if self._message_count > 0:
-            logger.info(f"{self.log_prefix} 本次focus会话共发送了 {self._message_count} 条消息")
-            if self._fatigue_triggered:
-                logger.info(f"{self.log_prefix} 因疲惫而退出focus模式")
 
         # 取消循环任务
         if self._loop_task and not self._loop_task.done():
@@ -1143,9 +1205,6 @@ class HeartFChatting:
             logger.info(f"{self.log_prefix} 性能统计已完成")
         except Exception as e:
             logger.warning(f"{self.log_prefix} 完成性能统计时出错: {e}")
-
-        # 重置消息计数器，为下次启动做准备
-        self.reset_message_count()
 
         logger.info(f"{self.log_prefix} HeartFChatting关闭完成")
 

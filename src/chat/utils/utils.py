@@ -386,6 +386,11 @@ def process_llm_response(text: str) -> list[str]:
     if global_config.response_splitter.enable_kaomoji_protection:
         sentences = recover_kaomoji(sentences, kaomoji_mapping)
 
+    # 新增：结尾“狗头”替换为表情包🐶
+    for i, s in enumerate(sentences):
+        if s.rstrip().endswith("狗头"):
+            sentences[i] = s.rstrip()[:-2] + "🐶"
+
     return sentences
 
 

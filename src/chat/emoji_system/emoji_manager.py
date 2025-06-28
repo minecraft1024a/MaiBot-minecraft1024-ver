@@ -302,13 +302,13 @@ def _ensure_emoji_dir() -> None:
 
 
 async def clear_temp_emoji() -> None:
-    """清理临时表情包
+    """最大缓存数量和批量清理数量可自定义
     清理/data/emoji、/data/image和/data/images目录下的所有文件
-    当目录中文件数超过100时，会全部删除
+    当目录中文件数超过最大缓存数量(global_config.emoji.max_reg_num)时，会全部删除
     """
 
     logger.info("[清理] 开始清理缓存...")
-
+    max_cache_num = getattr(global_config.emoji, 'max_cache_num', 100)
     for need_clear in (
         os.path.join(BASE_DIR, "emoji"),
         os.path.join(BASE_DIR, "image"),
@@ -316,8 +316,8 @@ async def clear_temp_emoji() -> None:
     ):
         if os.path.exists(need_clear):
             files = os.listdir(need_clear)
-            # 如果文件数超过100就全部删除
-            if len(files) > 100:
+            # 如果文件数超过最大缓存数量就全部删除
+            if len(files) > max_cache_num:
                 for filename in files:
                     file_path = os.path.join(need_clear, filename)
                     if os.path.isfile(file_path):
@@ -388,10 +388,11 @@ class EmojiManager:
 
         self.emoji_num = 0
         self.emoji_num_max = global_config.emoji.max_reg_num
+        self.scan_batch_size = getattr(global_config.emoji, 'scan_batch_size', 20)  # 新增：自定义扫描批量数量，默认20
         self.emoji_num_max_reach_deletion = global_config.emoji.do_replace
         self.emoji_objects: list[MaiEmoji] = []  # 存储MaiEmoji对象的列表，使用类型注解明确列表元素类型
 
-        logger.info("启动表情包管理器")
+        logger.info(f"启动表情包管理器，最大缓存数量: {self.emoji_num_max}，批量扫描数量: {self.scan_batch_size}")
 
     def initialize(self) -> None:
         """初始化数据库连接和表情目录"""
@@ -624,18 +625,24 @@ class EmojiManager:
                         and f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
                     ]
 
-                    # 处理每个符合条件的文件
-                    for filename in files_to_process:
-                        # 尝试注册表情包
-                        success = await self.register_emoji_by_filename(filename)
-                        if success:
-                            # 注册成功则跳出循环
+                    # 处理每个符合条件的文件，支持批量处理
+                    batch_size = self.scan_batch_size if hasattr(self, 'scan_batch_size') else 20
+                    for i in range(0, len(files_to_process), batch_size):
+                        batch = files_to_process[i:i+batch_size]
+                        for filename in batch:
+                            # 尝试注册表情包
+                            success = await self.register_emoji_by_filename(filename)
+                            if success:
+                                # 注册成功则跳出循环
+                                break
+                            else:
+                                # 注册失败则删除对应文件
+                                file_path = os.path.join(EMOJI_DIR, filename)
+                                os.remove(file_path)
+                                logger.warning(f"[清理] 删除注册失败的表情包文件: {filename}")
+                        # 如果本批次有注册成功的，跳出外层循环
+                        if any(await self.register_emoji_by_filename(f) for f in batch):
                             break
-                        else:
-                            # 注册失败则删除对应文件
-                            file_path = os.path.join(EMOJI_DIR, filename)
-                            os.remove(file_path)
-                            logger.warning(f"[清理] 删除注册失败的表情包文件: {filename}")
                 except Exception as e:
                     logger.error(f"[错误] 扫描表情包目录失败: {str(e)}")
 

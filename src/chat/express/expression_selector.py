@@ -15,10 +15,10 @@ logger = get_logger("expression_selector")
 
 def init_prompt():
     expression_evaluation_prompt = """
+你的名字是{bot_name}
+
 以下是正在进行的聊天内容：
 {chat_observe_info}
-
-你的名字是{bot_name}{target_message}
 
 以下是可选的表达情境：
 {all_situations}
@@ -28,7 +28,6 @@ def init_prompt():
 1. 聊天的情绪氛围（轻松、严肃、幽默等）
 2. 话题类型（日常、技术、游戏、情感等）
 3. 情境与当前语境的匹配度
-{target_message_extra_block}
 
 请以JSON格式输出，只需要输出选中的情境编号：
 例如：
@@ -109,67 +108,58 @@ class ExpressionSelector:
 
         return selected_style, selected_grammar, selected_personality
 
-    def update_expressions_count_batch(self, expressions_to_update: List[Dict[str, str]], increment: float = 0.1):
-        """对一批表达方式更新count值，按文件分组后一次性写入"""
-        if not expressions_to_update:
+    def update_expression_count(self, chat_id: str, expression: Dict[str, str], increment: float = 0.1):
+        """更新表达方式的count值
+
+        Args:
+            chat_id: 聊天ID
+            expression: 表达方式字典
+            increment: 增量值，默认0.1
+        """
+        if expression.get("type") == "style_personality":
+            # personality表达方式存储在全局文件中
+            file_path = os.path.join("data", "expression", "personality", "expressions.json")
+        else:
+            # style和grammar表达方式存储在对应chat_id目录中
+            expr_type = expression.get("type", "style")
+            if expr_type == "style":
+                file_path = os.path.join("data", "expression", "learnt_style", str(chat_id), "expressions.json")
+            elif expr_type == "grammar":
+                file_path = os.path.join("data", "expression", "learnt_grammar", str(chat_id), "expressions.json")
+            else:
+                return
+
+        if not os.path.exists(file_path):
             return
 
-        updates_by_file = {}
-        for expr in expressions_to_update:
-            source_id = expr.get("source_id")
-            if not source_id:
-                logger.warning(f"表达方式缺少source_id，无法更新: {expr}")
-                continue
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                expressions = json.load(f)
 
-            file_path = ""
-            if source_id == "personality":
-                file_path = os.path.join("data", "expression", "personality", "expressions.json")
-            else:
-                chat_id = source_id
-                expr_type = expr.get("type", "style")
-                if expr_type == "style":
-                    file_path = os.path.join("data", "expression", "learnt_style", str(chat_id), "expressions.json")
-                elif expr_type == "grammar":
-                    file_path = os.path.join("data", "expression", "learnt_grammar", str(chat_id), "expressions.json")
+            # 找到匹配的表达方式并更新count
+            for expr in expressions:
+                if expr.get("situation") == expression.get("situation") and expr.get("style") == expression.get(
+                    "style"
+                ):
+                    current_count = expr.get("count", 1)
 
-            if file_path:
-                if file_path not in updates_by_file:
-                    updates_by_file[file_path] = []
-                updates_by_file[file_path].append(expr)
+                    # 简单加0.1，但限制最高为5
+                    new_count = min(current_count + increment, 5.0)
+                    expr["count"] = new_count
+                    expr["last_active_time"] = time.time()
 
-        for file_path, updates in updates_by_file.items():
-            if not os.path.exists(file_path):
-                continue
+                    logger.info(f"表达方式激活: 原count={current_count:.2f}, 增量={increment}, 新count={new_count:.2f}")
+                    break
 
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    all_expressions = json.load(f)
+            # 保存更新后的文件
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(expressions, f, ensure_ascii=False, indent=2)
 
-                # Create a dictionary for quick lookup
-                expr_map = {(e.get("situation"), e.get("style")): e for e in all_expressions}
-
-                # Update counts in memory
-                for expr_to_update in updates:
-                    key = (expr_to_update.get("situation"), expr_to_update.get("style"))
-                    if key in expr_map:
-                        expr_in_map = expr_map[key]
-                        current_count = expr_in_map.get("count", 1)
-                        new_count = min(current_count + increment, 5.0)
-                        expr_in_map["count"] = new_count
-                        expr_in_map["last_active_time"] = time.time()
-                        logger.debug(
-                            f"表达方式激活: 原count={current_count:.3f}, 增量={increment}, 新count={new_count:.3f} in {file_path}"
-                        )
-
-                # Save the updated list once for this file
-                with open(file_path, "w", encoding="utf-8") as f:
-                    json.dump(all_expressions, f, ensure_ascii=False, indent=2)
-
-            except Exception as e:
-                logger.error(f"批量更新表达方式count失败 for {file_path}: {e}")
+        except Exception as e:
+            logger.error(f"更新表达方式count失败: {e}")
 
     async def select_suitable_expressions_llm(
-        self, chat_id: str, chat_info: str, max_num: int = 10, min_num: int = 5, target_message: str = None
+        self, chat_id: str, chat_info: str, max_num: int = 10, min_num: int = 5
     ) -> List[Dict[str, str]]:
         """使用LLM选择适合的表达方式"""
 
@@ -210,13 +200,6 @@ class ExpressionSelector:
 
         all_situations_str = "\n".join(all_situations)
 
-        if target_message:
-            target_message_str = f"，现在你想要回复消息：{target_message}"
-            target_message_extra_block = "4.考虑你要回复的目标消息"
-        else:
-            target_message_str = ""
-            target_message_extra_block = ""
-
         # 3. 构建prompt（只包含情境，不包含完整的表达方式）
         prompt = (await global_prompt_manager.get_prompt_async("expression_evaluation_prompt")).format(
             bot_name=global_config.bot.nickname,
@@ -224,11 +207,7 @@ class ExpressionSelector:
             all_situations=all_situations_str,
             min_num=min_num,
             max_num=max_num,
-            target_message=target_message_str,
-            target_message_extra_block=target_message_extra_block,
         )
-
-        # print(prompt)
 
         # 4. 调用LLM
         try:
@@ -258,9 +237,8 @@ class ExpressionSelector:
                     expression = all_expressions[idx - 1]  # 索引从1开始
                     valid_expressions.append(expression)
 
-            # 对选中的所有表达方式，一次性更新count数
-            if valid_expressions:
-                self.update_expressions_count_batch(valid_expressions, 0.003)
+                    # 对选中的表达方式count数+0.1
+                    self.update_expression_count(chat_id, expression, 0.0001)
 
             # logger.info(f"LLM从{len(all_expressions)}个情境中选择了{len(valid_expressions)}个")
             return valid_expressions
