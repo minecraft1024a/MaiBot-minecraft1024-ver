@@ -1,5 +1,5 @@
 [inner]
-version = "2.28.0"
+version = "2.29.2"
 
 #----以下是给开发人员阅读的，如果你只是部署了麦麦，不需要阅读----
 #如果你想要修改配置文件，请在修改后将version的值进行变更
@@ -97,6 +97,11 @@ exit_focus_threshold = 1 # 自动退出专注聊天的阈值，越低越容易�
 # 专注模式下，麦麦会进行主动的观察和回复，并给出回复，token消耗量较高
 # 自动模式下，麦麦会根据消息内容自动切换到专注模式或普通模式
 
+# 麦麦闭嘴相关配置
+mute_enable = true # 是否启用闭嘴功能，true为启用，false为关闭
+mute_duration = 300 # 触发闭嘴时禁言时长（秒），如300为5分钟
+mute_keywords = ["闭嘴", "别说话", "shut up"] # 触发禁言的关键词
+
 [message_receive]
 # 以下是消息过滤，可以根据规则过滤特定消息，将不会读取这些消息
 ban_words = [
@@ -143,6 +148,8 @@ expression_selector_processor = true # 是否启用表达方式选择处理器
 
 [emoji]
 max_reg_num = 60 # 表情包最大注册数量
+scan_batch_size = 20 # 一次性扫描/批量处理的表情包数量（自定义，建议20-100，根据性能调整）
+max_cache_num = 100 # 最大缓存数量，超过该数量会清理缓存目录下的所有表情包
 do_replace = true # 开启则在达到最大数量时删除（替换）表情包，关闭则达到最大数量时不会继续收集表情包
 check_interval = 10 # 检查表情包（注册，破损，删除）的时间间隔(分钟)
 steal_emoji = true # 是否偷取表情包，让麦麦可以将一些表情包据为己有
@@ -277,6 +284,12 @@ pri_in = 4.0 #模型的输入价格（非必填，可以记录消耗）
 pri_out = 16.0 #模型的输出价格（非必填，可以记录消耗）
 temp = 0.7
 
+[model.schedule] # 日程表专用模型配置，已归入model栏下
+name = "deepseek-ai/DeepSeek-V3"
+provider = "SILICONFLOW"
+pri_in = 2
+pri_out = 8
+temp = 0.2
 
 [model.memory_summary] # 记忆的概括模型
 name = "Qwen/Qwen3-30B-A3B"
@@ -378,6 +391,12 @@ enable = true
 [experimental] #实验性功能
 debug_show_chat_mode = false # 是否在回复后显示当前聊天模式
 enable_friend_chat = false # 是否启用好友聊天
+
+#----------------- 日程表系统配置 -----------------
+[schedule]
+# LLM生成日程时的提示词
+refresh_prompt = "用几句话描述描述性格特点或行动规律，这个特征会用来生成日程表"
+
 
 
 
