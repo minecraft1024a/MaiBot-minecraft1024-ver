@@ -31,6 +31,11 @@ from src.chat.utils.chat_message_builder import (
     get_raw_msg_before_timestamp_with_chat,
     num_new_messages_since,
 )
+from src.schedule_system.maibot_mind_manager import MaibotMindManager
+from src.config.config import global_config
+
+# 全局mind_manager实例，避免重复初始化
+_mind_manager = MaibotMindManager(model_config=global_config.model.schedule)
 
 willing_manager = get_willing_manager()
 
@@ -838,6 +843,11 @@ class NormalChat:
             logger.info(
                 f"[{self.stream_name}]回复消息: {trigger_msg[:30]}... | 回复内容: {response_msg[:30]}... | 计时: {timing_str}"
             )
+            # 新增：回复消息后生成小脑袋想法
+            try:
+                await _mind_manager.generate_and_save_mind(extra_message=response_msg)
+            except Exception as e:
+                logger.warning(f"[Mind] normal chat 发送后生成小脑袋想法失败: {e}")
         elif not do_reply:
             # 不回复处理
             await willing_manager.not_reply_handle(message.message_info.message_id)

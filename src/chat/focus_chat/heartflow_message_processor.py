@@ -21,9 +21,6 @@ from src.person_info.relationship_manager import get_relationship_manager
 
 logger = get_logger("chat")
 
-# 全局静音状态
-mute_until_timestamp = 0
-
 
 async def _handle_error(error: Exception, context: str, message: Optional[MessageRecv] = None) -> None:
     """统一的错误处理函数
@@ -140,9 +137,6 @@ class HeartFCMessageReceiver:
     def __init__(self):
         """初始化心流处理器，创建消息存储实例"""
         self.storage = MessageStorage()
-        # 增加静音状态
-        global mute_until_timestamp
-        self.mute_until_timestamp = mute_until_timestamp
 
     async def process_message(self, message: MessageRecv) -> None:
         """处理接收到的原始消息数据
@@ -179,29 +173,6 @@ class HeartFCMessageReceiver:
                 message.raw_message, chat, userinfo
             ):
                 return
-
-            # 检查是否被禁言（闭嘴功能）
-            global mute_until_timestamp
-            now = time.time()
-            mute_enable = getattr(global_config.chat, "mute_enable", True)
-            if mute_enable:
-                # 检查是否被@，如被@则解除禁言
-                is_mentioned, _ = is_mentioned_bot_in_message(message)
-                if is_mentioned and mute_until_timestamp > 0 and now < mute_until_timestamp:
-                    mute_until_timestamp = 0
-                    logger.info("[闭嘴功能] 被@，自动解除禁言")
-                # 检查是否处于禁言期
-                if mute_until_timestamp > 0 and now < mute_until_timestamp:
-                    logger.info(f"[闭嘴功能] 当前处于禁言期，剩余{int(mute_until_timestamp-now)}秒，消息不处理")
-                    return
-                # 检查是否触发闭嘴关键词
-                mute_keywords = getattr(global_config.chat, "mute_keywords", ["闭嘴", "别说话", "shut up"])
-                mute_duration = getattr(global_config.chat, "mute_duration", 300)
-                for kw in mute_keywords:
-                    if kw in message.processed_plain_text:
-                        mute_until_timestamp = now + mute_duration
-                        logger.info(f"[闭嘴功能] 检测到闭嘴关键词'{kw}'，禁言{mute_duration}秒")
-                        return
 
             # 6. 兴趣度计算与更新
             interested_rate, is_mentioned = await _calculate_interest(message)

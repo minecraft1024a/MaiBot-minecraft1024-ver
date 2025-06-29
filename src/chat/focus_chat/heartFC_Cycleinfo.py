@@ -136,3 +136,28 @@ class CycleDetail:
         self.loop_plan_info = loop_info["loop_plan_info"]
         self.loop_action_info = loop_info["loop_action_info"]
         self.loop_post_processor_info = loop_info["loop_post_processor_info"]
+
+    @staticmethod
+    def clear_all_cycles():
+        """
+        一键清空所有心流循环（如麦麦闭嘴时调用）
+        """
+        # 假设有全局循环管理器或全局循环列表
+        # 这里以全局变量 _global_cycles 为例
+        global _global_cycles
+        try:
+            if '_global_cycles' in globals():
+                _global_cycles.clear()
+                logger.info("[CycleDetail] 已清空所有心流循环（麦麦闭嘴）")
+            else:
+                logger.info("[CycleDetail] 没有全局心流循环可清空")
+        except Exception as e:
+            logger.error(f"[CycleDetail] 清空心流循环时出错: {e}")
+
+
+def auto_clear_all_cycles_on_silence():
+    """
+    检测到麦麦闭嘴等事件时自动清空所有心流循环
+    """
+    CycleDetail.clear_all_cycles()
+    logger.info("[CycleDetail] 检测到麦麦闭嘴，已自动清空所有心流循环")

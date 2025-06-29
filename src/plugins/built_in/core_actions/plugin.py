@@ -18,7 +18,9 @@ from src.common.logger import get_logger
 
 # 导入API模块 - 标准Python包方式
 from src.plugin_system.apis import emoji_api, generator_api, message_api
-from src.plugins.built_in.core_actions.no_reply import NoReplyAction
+from src.plugins.built_in.core_actions.no_reply import NoReplyAction,NoReply2Action
+from src.config.config import global_config
+from src.schedule_system.maibot_mind_manager import MaibotMindManager
 
 logger = get_logger("core_actions")
 
@@ -58,6 +60,10 @@ class ReplyAction(BaseAction):
         start_time = self.action_data.get("loop_start_time", time.time())
 
         try:
+            # 1. 生成麦麦大脑袋想法（修正：直接用全局配置）
+
+
+            # 2. 生成回复
             success, reply_set = await generator_api.generate_reply(
                 action_data=self.action_data,
                 chat_id=self.chat_id,
@@ -101,6 +107,16 @@ class ReplyAction(BaseAction):
 
             # 重置NoReplyAction的连续计数器
             NoReplyAction.reset_consecutive_count()
+            try:
+                mind_manager = MaibotMindManager(model_config=global_config.model.schedule)
+                await mind_manager.generate_and_save_mind(
+                    extra_message=self.action_data.get("reply_to", ""),
+                    chat_observe_info=self.action_data.get("chat_observe_info", ""),
+                    current_thinking_info=self.action_data.get("current_mind", None),
+                    mood_info=self.action_data.get("mood_info", None)
+                )
+            except Exception as e:
+                logger.error(f"{self.log_prefix} 生成麦麦小脑袋想法失败: {e}")
 
             return success, reply_text
 
@@ -272,6 +288,8 @@ class CoreActionsPlugin(BasePlugin):
             components.append((NoReplyAction.get_action_info(), NoReplyAction))
         if self.get_config("components.enable_emoji", True):
             components.append((EmojiAction.get_action_info(), EmojiAction))
+        components.append((NoReply2Action.get_action_info(), NoReply2Action))
+        
 
         # components.append((DeepReplyAction.get_action_info(), DeepReplyAction))
 
@@ -340,8 +358,8 @@ class CoreActionsPlugin(BasePlugin):
 
 #             extra_info_block = self.action_data.get("extra_info_block", "")
 #             extra_info_block += response
-#             # extra_info_block += f"\n--------------------------------\n注意，这是最重要的内容！！！！！你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以下方聊天记录的回复要求不再适用，请你自由的表达，不论字数长短限制\n\n--------------------------------\n注意，你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以下方聊天记录的回复要求不再适用，请你自由的表达，不论字数长短限制\n"
-#             # extra_info_block += f"\n--------------------------------\n注意，优先关注这句！！！！你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以下方聊天记录的回复要求不再适用，请你自由的表达，不论字数长短限制\n\n--------------------------------\n注意，你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以其他的回复要求不再适用，请你自由的表达，不论字数长短限制\n"
+#             # extra_info_block += f"\n--------------------------------\n注意，这是最重要的内容！！！！！你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以下方聊天记录的回复要求不再适用，请你自由的表达，不論字数长短限制\n\n--------------------------------\n注意，你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以下方聊天记录的回复要求不再适用，请你自由的表达，不論字数长短限制\n"
+#             # extra_info_block += f"\n--------------------------------\n注意，优先关注这句！！！！你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以下方聊天记录的回复要求不再适用，请你自由的表达，不論字数长短限制\n\n--------------------------------\n注意，你现在可以用比较长的篇幅来表达你的观点，不要只回复一个字或者几个字\n由于你进入了深度思考模式，所以其他的回复要求不再适用，请你自由的表达，不論字数长短限制\n"
 #             self.action_data["extra_info_block"] = extra_info_block
 
 

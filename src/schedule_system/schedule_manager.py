@@ -170,11 +170,9 @@ class ScheduleManager:
                 if not item or not isinstance(item, str) or not item.strip():
                     continue
                 s = item.strip()
-                logger.info(f"[Schedule] 清洗前的日程文本: {s}")
                 # 深度清洗日程文本
                 cleaned = self._clean_schedule_text(s)
                 if cleaned:
-                    logger.info(f"[Schedule] 清洗后的日程文本: {cleaned}")
                     return cleaned
             return ""
         # 单字符串情况

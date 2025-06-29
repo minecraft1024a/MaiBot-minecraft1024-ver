@@ -102,6 +102,18 @@ class ActionPlanner(BasePlanner):
             loop_start_time: 循环开始时间
         """
 
+        # 检查闭嘴状态，若禁言则直接返回 no_reply
+        from src.chat.message_receive.bot import ChatBot
+        import time
+        now = time.time()
+        if ChatBot.mute_until_timestamp > 0 and now < ChatBot.mute_until_timestamp:
+            logger.info(f"[planner] 当前处于禁言期，planner不生成，直接返回no_reply")
+            return {
+                "action_result": {"action_type": "no_reply2", "action_data": {}, "reasoning": "闭嘴期间不生成planner"},
+                "observed_messages": [],
+                "action_prompt": "闭嘴期间不生成planner"
+            }
+
         action = "no_reply"  # 默认动作
         reasoning = "规划器初始化默认"
         action_data = {}

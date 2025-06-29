@@ -573,3 +573,20 @@ class NoReplyAction(BaseAction):
         """重置连续计数器"""
         cls._consecutive_count = 0
         logger.debug("NoReplyAction连续计数器已重置")
+
+
+class NoReply2Action(BaseAction):
+    """闭嘴专用不回复动作，不记录任何动作信息"""
+    focus_activation_type = ActionActivationType.ALWAYS
+    normal_activation_type = ActionActivationType.NEVER
+    mode_enable = ChatMode.FOCUS
+    parallel_action = False
+    action_name = "no_reply2"
+    action_description = "闭嘴专用不回复动作，不记录任何动作信息"
+    action_parameters = {"reason": "不回复的原因"}
+    action_require = ["麦麦闭嘴时使用"]
+    associated_types = []
+
+    async def execute(self) -> Tuple[bool, str]:
+        """闭嘴时直接返回，不记录任何动作信息"""
+        return True, "闭嘴期间不回复，不记录任何动作信息"

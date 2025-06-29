@@ -38,6 +38,9 @@ if global_config.memory.enable_memory:
 from src.schedule_system.schedule_manager import ScheduleManager
 from src.schedule_system.schedule_auto_refresh_task import ScheduleAutoRefreshTask
 
+# 导入麦麦小脑袋管理器
+from src.schedule_system.maibot_mind_manager import MaibotMindManager
+
 # 插件系统现在使用统一的插件加载器
 
 install(extra_lines=3)
@@ -67,9 +70,13 @@ class MainSystem:
             model_config=global_config.model.schedule
         )
 
+        # 初始化麦麦小脑袋管理器
+        self.mind_manager = MaibotMindManager(model_config=global_config.model.schedule)
+
     async def initialize(self):
         """初始化系统组件"""
         logger.debug(f"正在唤醒{global_config.bot.nickname}......")
+
 
         # 其他初始化任务
         await asyncio.gather(self._init_components())
@@ -194,6 +201,8 @@ class MainSystem:
                 self.server.run(),
                 # 日程表自动刷新任务
                 self.schedule_manager.auto_refresh(),
+                # 启动麦麦小脑袋自动生成循环
+                self.mind_manager.random_mind_loop(),
             ]
 
             # 根据配置条件性地添加记忆系统相关任务

@@ -1,4 +1,5 @@
 import traceback
+import time
 from typing import Dict, Any
 
 from src.common.logger import get_logger
@@ -13,6 +14,7 @@ from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
 from src.config.config import global_config
 from src.plugin_system.core.component_registry import component_registry  # 导入新插件系统
 from src.plugin_system.base.base_command import BaseCommand
+from src.chat.utils.utils import is_mentioned_bot_in_message
 # 定义日志配置
 
 
@@ -21,15 +23,15 @@ logger = get_logger("chat")
 
 
 class ChatBot:
+    mute_until_timestamp = 0  # 类变量，全局禁言状态
     def __init__(self):
         self.bot = None  # bot 实例引用
         self._started = False
         self.mood_manager = mood_manager  # 获取情绪管理器单例
         self.heartflow_message_receiver = HeartFCMessageReceiver()  # 新增
-
-        # 创建初始化PFC管理器的任务，会在_ensure_started时执行
         self.only_process_chat = MessageProcessor()
         self.pfc_manager = PFCManager.get_instance()
+        # self.mute_until_timestamp = 0  # 移除实例变量
 
     async def _ensure_started(self):
         """确保所有任务已启动"""
@@ -119,16 +121,24 @@ class ChatBot:
             # 确保所有任务已启动
             await self._ensure_started()
 
-            if message_data["message_info"].get("group_info") is not None:
-                message_data["message_info"]["group_info"]["group_id"] = str(
-                    message_data["message_info"]["group_info"]["group_id"]
-                )
-            message_data["message_info"]["user_info"]["user_id"] = str(
-                message_data["message_info"]["user_info"]["user_id"]
-            )
-            # print(message_data)
+            now = time.time()
+            mute_enable = getattr(global_config.chat, "mute_enable", True)
+            mute_keywords = getattr(global_config.chat, "mute_keywords", ["闭嘴", "别说话", "shut up"])
+            mute_duration = getattr(global_config.chat, "mute_duration", 300)
+
+            # 先提取纯文本内容
+            msg_text = message_data.get("processed_plain_text")
+            if not msg_text:
+                # 兼容未预处理的情况
+                try:
+                    msg_text = message_data["message_info"]["text"]
+                except Exception:
+                    msg_text = ""
+            message = MessageRecv(message_data)  # 先构造对象
+
+            # 检查是否被禁言
+           
             # logger.debug(str(message_data))
-            message = MessageRecv(message_data)
             group_info = message.message_info.group_info
             user_info = message.message_info.user_info
             get_chat_manager().register_message(message)
@@ -143,6 +153,65 @@ class ChatBot:
 
             # 处理消息内容，生成纯文本
             await message.process()
+            if mute_enable:
+                msg_text2 = ""
+                seglist = message_data.get("message_segment")
+                if isinstance(seglist, dict) and seglist.get("type") == "seglist":
+                    for seg in seglist.get("data", []):
+                        if isinstance(seg, dict) and seg.get("type") == "text":
+                            data = seg.get("data", "")
+                            if isinstance(data, dict):
+                                msg_text2 += str(data.get("text", ""))
+                            else:
+                                msg_text2 += str(data)
+                # 如果还没有内容，再从data字段兜底
+                if not msg_text2:
+                    segs = message_data.get("data", [])
+                    for seg in segs:
+                        if isinstance(seg, dict) and seg.get("type") == "text":
+                            data = seg.get("data", "")
+                            if isinstance(data, dict):
+                                msg_text2 += str(data.get("text", ""))
+                            else:
+                                msg_text2 += str(data)
+                # 更精确判断是否@了机器人自己
+                try:
+                    is_mentioned, _ = is_mentioned_bot_in_message(message)
+                except Exception as e:
+                    logger.error(f"判断是否@机器人时出错: {e}")
+                    is_mentioned = False
+                if is_mentioned and ChatBot.mute_until_timestamp > 0 and now < ChatBot.mute_until_timestamp:
+                    ChatBot.mute_until_timestamp = 0
+                    logger.info("[闭嘴功能] 被@，自动解除禁言")
+                if ChatBot.mute_until_timestamp > 0 and now < ChatBot.mute_until_timestamp:
+                    logger.info(f"[闭嘴功能] 当前处于禁言期，剩余{int(ChatBot.mute_until_timestamp-now)}秒，消息不处理")
+                    group_info = message.message_info.group_info
+                    user_info = message.message_info.user_info
+                    get_chat_manager().register_message(message)
+                    chat = await get_chat_manager().get_or_create_stream(
+                        platform=message.message_info.platform,
+                        user_info=user_info,
+                        group_info=group_info,
+                    )
+                    message.update_chat_stream(chat)
+                    await MessageStorage.store_message(message, chat)
+                    return
+                for kw in mute_keywords:
+                    if kw.lower() in msg_text2.lower():
+                        ChatBot.mute_until_timestamp = now + mute_duration
+                        logger.info(f"[闭嘴功能] 检测到闭嘴关键词'{kw}'，禁言{mute_duration}秒")
+                        group_info = message.message_info.group_info
+                        user_info = message.message_info.user_info
+                        get_chat_manager().register_message(message)
+                        chat = await get_chat_manager().get_or_create_stream(
+                            platform=message.message_info.platform,
+                            user_info=user_info,
+                            group_info=group_info,
+                        )
+                        message.update_chat_stream(chat)
+                        await MessageStorage.store_message(message, chat)
+                        return
+
 
             # 命令处理 - 使用新插件系统检查并处理命令
             is_command, cmd_result, continue_process = await self._process_commands_with_new_system(message)

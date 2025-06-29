@@ -42,6 +42,33 @@ class BaseCommand(ABC):
 
         self.log_prefix = "[Command]"
 
+        # ====== 新增：chat_stream相关属性初始化 ======
+        self.chat_stream = getattr(message, "chat_stream", None)
+        self.chat_id = self.chat_stream.stream_id if self.chat_stream else None
+        # 初始化基础信息（带类型注解）
+        self.is_group: bool = False
+        self.platform: Optional[str] = None
+        self.group_id: Optional[str] = None
+        self.user_id: Optional[str] = None
+        self.target_id: Optional[str] = None
+        self.group_name: Optional[str] = None
+        self.user_nickname: Optional[str] = None
+
+        # 如果有聊天流，提取所有信息
+        if self.chat_stream:
+            self.platform = getattr(self.chat_stream, "platform", None)
+            if getattr(self.chat_stream, "group_info", None):
+                self.is_group = True
+                self.group_id = str(self.chat_stream.group_info.group_id)
+                self.group_name = getattr(self.chat_stream.group_info, "group_name", None)
+            else:
+                self.is_group = False
+                self.user_id = str(self.chat_stream.user_info.user_id)
+                self.user_nickname = getattr(self.chat_stream.user_info, "user_nickname", None)
+            # 设置目标ID（群聊用群ID，私聊用用户ID）
+            self.target_id = self.group_id if self.is_group else self.user_id
+        # ====== 新增结束 ======
+
         logger.debug(f"{self.log_prefix} Command组件初始化完成")
 
     def set_matched_groups(self, groups: Dict[str, str]) -> None:
