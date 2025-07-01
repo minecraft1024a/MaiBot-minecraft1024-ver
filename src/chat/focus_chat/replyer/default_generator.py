@@ -39,6 +39,7 @@ def init_prompt():
 {current_activity_block}
 {chat_target}
 {chat_info}
+{maimai_brain_block}
 {reply_target_block}
 {identity}
 
@@ -59,6 +60,7 @@ def init_prompt():
 {memory_block}
 {relation_info_block}
 {extra_info_block}
+{maimai_brain_block}
 {time_block}
 {current_activity_block}
 {chat_target}
@@ -436,6 +438,14 @@ class DefaultReplyer:
             logger.error(f"获取现在做的事失败: {e}")
             current_activity_block = ""
 
+        # 获取麦麦小脑袋内容
+        try:
+            from src.schedule_system.maibot_mind_manager import get_maimai_brain
+            maimai_brain_block = get_maimai_brain() or ""
+        except Exception as e:
+            logger.error(f"获取麦麦小脑袋失败: {e}")
+            maimai_brain_block = ""
+
         # --- Choose template based on chat type ---
         if is_group_chat:
             template_name = "default_generator_prompt"
@@ -461,6 +471,7 @@ class DefaultReplyer:
                 sender_name=sender,
                 config_expression_style=global_config.expression.expression_style,
                 current_activity_block=current_activity_block,
+                maimai_brain_block=maimai_brain_block,
             )
         else:  # Private chat
             template_name = "default_generator_private_prompt"
@@ -487,6 +498,7 @@ class DefaultReplyer:
                 sender_name=sender,
                 config_expression_style=global_config.expression.expression_style,
                 current_activity_block=current_activity_block,
+                maimai_brain_block=maimai_brain_block,
             )
 
         return prompt

@@ -1,5 +1,5 @@
 [inner]
-version = "2.29.3"
+version = "2.29.4.1"
 
 #----以下是给开发人员阅读的，如果你只是部署了麦麦，不需要阅读----
 #如果你想要修改配置文件，请在修改后将version的值进行变更
@@ -249,6 +249,7 @@ library_log_levels = { "aiohttp" = "WARNING"} # 设置特定库的日志级别
 
 [model]
 model_max_output_length = 800 # 模型单次返回的最大token数
+siliconflow_token = "" # 硅基流动的token，若使用硅基流动则需要填写
 
 #------------必填：组件模型------------
 
@@ -291,7 +292,7 @@ pri_in = 2
 pri_out = 8
 temp = 0.2
 
-[model.maimai_mind]
+[model.MaiMaiMind]
 # 麦麦小脑袋（内心独白/在想什么）专用模型配置
 name = "deepseek-ai/DeepSeek-V3"
 provider = "SILICONFLOW"

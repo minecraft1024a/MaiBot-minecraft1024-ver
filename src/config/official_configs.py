@@ -690,6 +690,9 @@ class ModelConfig(ConfigBase):
     schedule: dict = field(default_factory=lambda: {})
     """日程表专用模型配置"""
 
+    MaiMaiMind: dict = field(default_factory=lambda: {})
+    """麦麦小脑袋模型配置"""
+
 
 @dataclass
 class ScheduleConfig(ConfigBase):

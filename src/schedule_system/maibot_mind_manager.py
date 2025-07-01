@@ -95,7 +95,8 @@ class MaibotMindManager:
             wait_minutes = random.randint(3, 6)
             await asyncio.sleep(wait_minutes * 60)
             await self.generate_and_save_mind()
-    def gentle_clean_mind_text(self, text: str) -> str:
+    @staticmethod
+    def gentle_clean_mind_text(text: str) -> str:
         """
         单独温和清洗麦麦小脑袋想法文本，仅去除明显无关符号和多余空白，不做深度裁剪
         :param text: 需要清洗的文本
@@ -126,3 +127,19 @@ class MaibotMindManager:
         except Exception as e:
             logger.warning(f"[Mind] 单独清洗小脑袋想法失败: {e}")
             return text
+
+def get_maimai_brain() -> str:
+    """
+    获取最近一条麦麦小脑袋想法（同步），用于 prompt 构建。
+    :return: 格式化后的麦麦小脑袋内容字符串
+    """
+    try:
+        record = MaibotMindRecord.select().order_by(MaibotMindRecord.id.desc()).first()
+        if record and record.content:
+            cleaned = MaibotMindManager.gentle_clean_mind_text(record.content)
+            if cleaned:
+                return f"麦麦小脑袋：{cleaned}"
+        return ""
+    except Exception as e:
+        logger.error(f"获取麦麦小脑袋内容失败: {e}")
+        return ""

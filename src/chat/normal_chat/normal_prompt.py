@@ -270,6 +270,15 @@ class PromptBuilder:
             logger.error(f"获取现在做的事失败: {e}")
             current_activity_block = ""
 
+        # 获取麦麦小脑袋内容
+        try:
+            from src.schedule_system.maibot_mind_manager import get_maimai_brain
+
+            maimai_brain_block = get_maimai_brain() or ""
+        except Exception as e:
+            logger.error(f"获取麦麦小脑袋失败: {e}")
+            maimai_brain_block = ""
+
         # --- Choose template and format based on chat type ---
         if is_group_chat:
             template_name = "reasoning_prompt_main"
@@ -298,6 +307,7 @@ class PromptBuilder:
                 now_time=now_time,
                 action_descriptions=action_descriptions,
                 current_activity_block=current_activity_block,
+                maimai_brain_block=maimai_brain_block,
             )
         else:
             template_name = "reasoning_prompt_private_main"
@@ -322,6 +332,7 @@ class PromptBuilder:
                 now_time=now_time,
                 action_descriptions=action_descriptions,
                 current_activity_block=current_activity_block,
+                maimai_brain_block=maimai_brain_block,
             )
         # --- End choosing template ---
 

@@ -141,6 +141,12 @@ class ChatBot:
             # logger.debug(str(message_data))
             group_info = message.message_info.group_info
             user_info = message.message_info.user_info
+            sent_message = message.message_info.additional_config.get("sent_message", False)
+
+            if user_info.user_id == global_config.bot.qq_account and sent_message: # 这一段只是为了在一切处理前劫持上报的自身消息，用于更新message_id，需要ada支持上报事件，实际测试中不会对正常使用造成任何问题
+                await message.process()
+                await MessageStorage.update_message(message)
+                return
             get_chat_manager().register_message(message)
 
             # 创建聊天流
@@ -211,7 +217,6 @@ class ChatBot:
                         message.update_chat_stream(chat)
                         await MessageStorage.store_message(message, chat)
                         return
-
 
             # 命令处理 - 使用新插件系统检查并处理命令
             is_command, cmd_result, continue_process = await self._process_commands_with_new_system(message)

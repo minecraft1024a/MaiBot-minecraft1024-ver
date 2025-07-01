@@ -203,3 +203,16 @@ update_config()
 logger.info("正在品鉴配置文件...")
 global_config = load_config(config_path=os.path.join(CONFIG_DIR, "bot_config.toml"))
 logger.info("非常的新鲜，非常的美味！")
+
+def reload_config():
+    """
+    重新加载全局配置
+    """
+    global global_config
+    try:
+        logger.info("正在重新加载配置文件...")
+        global_config = load_config(config_path=f"{CONFIG_DIR}/bot_config.toml")
+        logger.info("配置文件重新加载完成")
+    except Exception as e:
+        logger.error(f"重新加载配置文件失败: {e}")
+        raise e

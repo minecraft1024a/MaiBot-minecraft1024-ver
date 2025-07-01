@@ -49,6 +49,10 @@ willing_manager = get_willing_manager()
 
 logger = get_logger("main")
 
+# 启动配置文件热更新线程（建议在主入口最前面调用）
+from src.config.hot_update import hot_update_config_task
+
+
 
 class MainSystem:
     def __init__(self):
@@ -71,7 +75,7 @@ class MainSystem:
         )
 
         # 初始化麦麦小脑袋管理器
-        self.mind_manager = MaibotMindManager(model_config=global_config.model.schedule)
+        self.mind_manager = MaibotMindManager(model_config=global_config.model.MaiMaiMind)
 
     async def initialize(self):
         """初始化系统组件"""
@@ -204,6 +208,12 @@ class MainSystem:
                 # 启动麦麦小脑袋自动生成循环
                 self.mind_manager.random_mind_loop(),
             ]
+            # 配置文件热更新任务
+            try:
+                tasks.append(hot_update_config_task())
+                logger.info("配置文件热更新任务已添加")
+            except Exception as e:
+                logger.error(f"配置文件热更新任务启动失败: {e}")
 
             # 根据配置条件性地添加记忆系统相关任务
             if global_config.memory.enable_memory and self.hippocampus_manager:

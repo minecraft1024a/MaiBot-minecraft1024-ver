@@ -146,6 +146,13 @@ class MessageRecv(Message):
                 if isinstance(segment.data, str):
                     return await get_image_manager().get_emoji_description(segment.data)
                 return "[发了一个表情包，网卡了加载不出来]"
+            elif segment.type == "voice":
+                # 语音消息，base64转文字
+                from src.chat.utils.voice_transcribe import voice_base64_to_text
+                if isinstance(segment.data, str):
+                    text = await voice_base64_to_text(segment.data)
+                    return f"[语音]{text}"
+                return "[发了一段语音，网卡了加载不出来]"
             else:
                 return f"[{segment.type}:{str(segment.data)}]"
         except Exception as e:
@@ -222,6 +229,12 @@ class MessageProcessBase(Message):
                     # print(f"reply: {self.reply}")
                     return f"[回复<{self.reply.message_info.user_info.user_nickname}:{self.reply.message_info.user_info.user_id}> 的消息：{self.reply.processed_plain_text}]"
                 return None
+            elif seg.type == "voice":
+                from src.chat.utils.voice_transcribe import voice_base64_to_text
+                if isinstance(seg.data, str):
+                    text = await voice_base64_to_text(seg.data)
+                    return f"[语音]{text}"
+                return "[语音，网卡了加载不出来]"
             else:
                 return f"[{seg.type}:{str(seg.data)}]"
         except Exception as e:
