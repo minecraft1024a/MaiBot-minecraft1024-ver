@@ -216,3 +216,10 @@ def reload_config():
     except Exception as e:
         logger.error(f"重新加载配置文件失败: {e}")
         raise e
+
+def get_global_config_obj() -> Config:
+    """
+    获取当前全局配置对象（用于热重载场景，避免 import 缓存问题）
+    """
+    global global_config
+    return global_config

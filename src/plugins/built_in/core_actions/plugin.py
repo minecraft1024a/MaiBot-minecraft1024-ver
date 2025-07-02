@@ -19,7 +19,7 @@ from src.common.logger import get_logger
 # 导入API模块 - 标准Python包方式
 from src.plugin_system.apis import emoji_api, generator_api, message_api
 from src.plugins.built_in.core_actions.no_reply import NoReplyAction,NoReply2Action
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.schedule_system.maibot_mind_manager import MaibotMindManager
 
 logger = get_logger("core_actions")
@@ -108,7 +108,7 @@ class ReplyAction(BaseAction):
             # 重置NoReplyAction的连续计数器
             NoReplyAction.reset_consecutive_count()
             try:
-                mind_manager = MaibotMindManager(model_config=global_config.model.schedule)
+                mind_manager = MaibotMindManager(model_config=get_global_config_obj().model.schedule)
                 await mind_manager.generate_and_save_mind(
                     extra_message=self.action_data.get("reply_to", ""),
                     chat_observe_info=self.action_data.get("chat_observe_info", ""),

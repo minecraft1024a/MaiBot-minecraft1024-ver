@@ -7,7 +7,7 @@ from maim_message import UserInfo, Seg
 from src.chat.message_receive.message import MessageSending, MessageSet
 from src.chat.message_receive.message_sender import message_manager
 from src.chat.message_receive.storage import MessageStorage
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from rich.traceback import install
 
 install(extra_lines=3)
@@ -42,8 +42,8 @@ class DirectMessageSender:
 
             # 获取麦麦的信息
             bot_user_info = UserInfo(
-                user_id=global_config.bot.qq_account,
-                user_nickname=global_config.bot.nickname,
+                user_id=get_global_config_obj().bot.qq_account,
+                user_nickname=get_global_config_obj().bot.nickname,
                 platform=chat_stream.platform,
             )
 

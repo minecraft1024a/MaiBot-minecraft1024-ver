@@ -4,7 +4,7 @@ from src.common.logger import get_logger
 from src.chat.heart_flow.observation.hfcloop_observation import HFCloopObservation
 from src.chat.heart_flow.observation.chatting_observation import ChattingObservation
 from src.chat.message_receive.chat_stream import get_chat_manager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.llm_models.utils_model import LLMRequest
 import random
 import asyncio
@@ -32,7 +32,7 @@ class ActionModifier:
 
         # 用于LLM判定的小模型
         self.llm_judge = LLMRequest(
-            model=global_config.model.utils_small,
+            model=get_global_config_obj().model.utils_small,
             request_type="action.judge",
         )
 
@@ -564,9 +564,9 @@ class ActionModifier:
 
         # 计算连续回复的相关阈值
 
-        max_reply_num = int(global_config.focus_chat.consecutive_replies * 3.2)
-        sec_thres_reply_num = int(global_config.focus_chat.consecutive_replies * 2)
-        one_thres_reply_num = int(global_config.focus_chat.consecutive_replies * 1.5)
+        max_reply_num = int(get_global_config_obj().focus_chat.consecutive_replies * 3.2)
+        sec_thres_reply_num = int(get_global_config_obj().focus_chat.consecutive_replies * 2)
+        one_thres_reply_num = int(get_global_config_obj().focus_chat.consecutive_replies * 1.5)
 
         # 获取最近max_reply_num次的reply状态
         if len(reply_sequence) >= max_reply_num:
@@ -591,7 +591,7 @@ class ActionModifier:
             )
         elif len(last_max_reply_num) >= sec_thres_reply_num and all(last_max_reply_num[-sec_thres_reply_num:]):
             # 如果最近sec_thres_reply_num次都是reply，40%概率移除
-            removal_probability = 0.4 / global_config.focus_chat.consecutive_replies
+            removal_probability = 0.4 / get_global_config_obj().focus_chat.consecutive_replies
             if random.random() < removal_probability:
                 result["remove"].append("reply")
                 logger.info(
@@ -603,7 +603,7 @@ class ActionModifier:
                 )
         elif len(last_max_reply_num) >= one_thres_reply_num and all(last_max_reply_num[-one_thres_reply_num:]):
             # 如果最近one_thres_reply_num次都是reply，20%概率移除
-            removal_probability = 0.2 / global_config.focus_chat.consecutive_replies
+            removal_probability = 0.2 / get_global_config_obj().focus_chat.consecutive_replies
             if random.random() < removal_probability:
                 result["remove"].append("reply")
                 logger.info(

@@ -2,7 +2,7 @@ import random
 
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
 from typing import List, Tuple
 import os
@@ -37,7 +37,7 @@ def init_prompt() -> None:
 class PersonalityExpression:
     def __init__(self):
         self.express_learn_model: LLMRequest = LLMRequest(
-            model=global_config.model.replyer_1,
+            model=get_global_config_obj().model.replyer_1,
             max_tokens=512,
             request_type="expressor.learner",
         )
@@ -88,8 +88,8 @@ class PersonalityExpression:
         """
         os.makedirs(os.path.dirname(self.expressions_file_path), exist_ok=True)
 
-        current_style_text = global_config.expression.expression_style
-        current_personality = global_config.personality.personality_core
+        current_style_text = get_global_config_obj().expression.expression_style
+        current_personality = get_global_config_obj().personality.personality_core
 
         meta_data = self._read_meta_data()
 

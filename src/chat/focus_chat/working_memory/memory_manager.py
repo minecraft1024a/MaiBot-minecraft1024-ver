@@ -4,7 +4,7 @@ from json_repair import repair_json
 from rich.traceback import install
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.focus_chat.working_memory.memory_item import MemoryItem
 import json  # 添加json模块导入
 
@@ -33,7 +33,7 @@ class MemoryManager:
         self._id_map: Dict[str, MemoryItem] = {}
 
         self.llm_summarizer = LLMRequest(
-            model=global_config.model.focus_working_memory,
+            model=get_global_config_obj().model.focus_working_memory,
             temperature=0.3,
             request_type="focus.processor.working_memory",
         )

@@ -7,7 +7,7 @@ from src.chat.message_receive.message import UserInfo
 from src.chat.message_receive.chat_stream import get_chat_manager
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.utils.timer_calculator import Timer  # <--- Import Timer
 from src.chat.focus_chat.heartFC_sender import HeartFCSender
 from src.chat.utils.utils import process_llm_response
@@ -128,7 +128,7 @@ class DefaultReplyer:
         self.log_prefix = "replyer"
         # TODO: API-Adapter修改标记
         self.express_model = LLMRequest(
-            model=global_config.model.replyer_1,
+            model=get_global_config_obj().model.replyer_1,
             request_type="focus.replyer",
         )
         self.heart_fc_sender = HeartFCSender()
@@ -146,8 +146,8 @@ class DefaultReplyer:
         messageinfo = anchor_message.message_info
         thinking_time_point = parse_thinking_id_to_timestamp(thinking_id)
         bot_user_info = UserInfo(
-            user_id=global_config.bot.qq_account,
-            user_nickname=global_config.bot.nickname,
+            user_id=get_global_config_obj().bot.qq_account,
+            user_nickname=get_global_config_obj().bot.nickname,
             platform=messageinfo.platform,
         )
 
@@ -309,7 +309,7 @@ class DefaultReplyer:
         message_list_before_now = get_raw_msg_before_timestamp_with_chat(
             chat_id=chat_stream.stream_id,
             timestamp=time.time(),
-            limit=global_config.focus_chat.observation_context_size,
+            limit=get_global_config_obj().focus_chat.observation_context_size,
         )
         # print(f"message_list_before_now: {message_list_before_now}")
         chat_talking_prompt = build_readable_messages(
@@ -366,13 +366,13 @@ class DefaultReplyer:
         keywords_reaction_prompt = ""
         try:
             # 处理关键词规则
-            for rule in global_config.keyword_reaction.keyword_rules:
+            for rule in get_global_config_obj().keyword_reaction.keyword_rules:
                 if any(keyword in target for keyword in rule.keywords):
                     logger.info(f"检测到关键词规则：{rule.keywords}，触发反应：{rule.reaction}")
                     keywords_reaction_prompt += f"{rule.reaction}，"
 
             # 处理正则表达式规则
-            for rule in global_config.keyword_reaction.regex_rules:
+            for rule in get_global_config_obj().keyword_reaction.regex_rules:
                 for pattern_str in rule.regex:
                     try:
                         pattern = re.compile(pattern_str)
@@ -392,9 +392,9 @@ class DefaultReplyer:
         time_block = f"当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
         # logger.debug("开始构建 focus prompt")
-        bot_name = global_config.bot.nickname
-        if global_config.bot.alias_names:
-            bot_nickname = f",也有人叫你{','.join(global_config.bot.alias_names)}"
+        bot_name = get_global_config_obj().bot.nickname
+        if get_global_config_obj().bot.alias_names:
+            bot_nickname = f",也有人叫你{','.join(get_global_config_obj().bot.alias_names)}"
         else:
             bot_nickname = ""
         short_impression = await person_info_manager.get_value(bot_person_id, "short_impression")
@@ -469,7 +469,7 @@ class DefaultReplyer:
                 identity=indentify_block,
                 target_message=target,
                 sender_name=sender,
-                config_expression_style=global_config.expression.expression_style,
+                config_expression_style=get_global_config_obj().expression.expression_style,
                 current_activity_block=current_activity_block,
                 maimai_brain_block=maimai_brain_block,
             )
@@ -496,7 +496,7 @@ class DefaultReplyer:
                 identity=indentify_block,
                 target_message=target,
                 sender_name=sender,
-                config_expression_style=global_config.expression.expression_style,
+                config_expression_style=get_global_config_obj().expression.expression_style,
                 current_activity_block=current_activity_block,
                 maimai_brain_block=maimai_brain_block,
             )
@@ -525,7 +525,7 @@ class DefaultReplyer:
         message_list_before_now = get_raw_msg_before_timestamp_with_chat(
             chat_id=chat_stream.stream_id,
             timestamp=time.time(),
-            limit=global_config.focus_chat.observation_context_size,
+            limit=get_global_config_obj().focus_chat.observation_context_size,
         )
         chat_talking_prompt = build_readable_messages(
             message_list_before_now,
@@ -583,13 +583,13 @@ class DefaultReplyer:
                 grammar_habbits=grammar_habbits_str,
                 chat_target=chat_target_1,
                 chat_info=chat_talking_prompt,
-                bot_name=global_config.bot.nickname,
+                bot_name=get_global_config_obj().bot.nickname,
                 prompt_personality="",
                 reason=reason,
                 raw_reply=raw_reply,
                 sender_name=sender,
                 target_message=target,
-                config_expression_style=global_config.expression.expression_style,
+                config_expression_style=get_global_config_obj().expression.expression_style,
             )
         else:  # Private chat
             template_name = "default_expressor_private_prompt"
@@ -606,13 +606,13 @@ class DefaultReplyer:
                 grammar_habbits=grammar_habbits_str,
                 chat_target=chat_target_1,
                 chat_info=chat_talking_prompt,
-                bot_name=global_config.bot.nickname,
+                bot_name=get_global_config_obj().bot.nickname,
                 prompt_personality="",
                 reason=reason,
                 raw_reply=raw_reply,
                 sender_name=sender,
                 target_message=target,
-                config_expression_style=global_config.expression.expression_style,
+                config_expression_style=get_global_config_obj().expression.expression_style,
             )
 
         return prompt
@@ -660,7 +660,7 @@ class DefaultReplyer:
             type = msg_text[0]
             data = msg_text[1]
 
-            if global_config.experimental.debug_show_chat_mode and type == "text":
+            if get_global_config_obj().experimental.debug_show_chat_mode and type == "text":
                 data += "ᶠ"
 
             part_message_id = f"{thinking_id}_{i}"
@@ -732,8 +732,8 @@ class DefaultReplyer:
         """构建单个发送消息"""
 
         bot_user_info = UserInfo(
-            user_id=global_config.bot.qq_account,
-            user_nickname=global_config.bot.nickname,
+            user_id=get_global_config_obj().bot.qq_account,
+            user_nickname=get_global_config_obj().bot.nickname,
             platform=self.chat_stream.platform,
         )
 

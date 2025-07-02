@@ -2,7 +2,7 @@ from typing import List, Any, Dict
 from src.common.logger import get_logger
 from src.chat.focus_chat.planners.action_manager import ActionManager
 from src.chat.utils.chat_message_builder import build_readable_messages, get_raw_msg_before_timestamp_with_chat
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 import random
 import time
 
@@ -80,7 +80,7 @@ class NormalChatActionModifier:
                 message_list_before_now = get_raw_msg_before_timestamp_with_chat(
                     chat_id=chat_stream.stream_id,
                     timestamp=time.time(),
-                    limit=global_config.focus_chat.observation_context_size,  # 使用相同的配置
+                    limit=get_global_config_obj().focus_chat.observation_context_size,  # 使用相同的配置
                 )
 
                 # 构建可读的聊天上下文

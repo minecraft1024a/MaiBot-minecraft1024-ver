@@ -11,7 +11,7 @@ from src.chat.message_receive.message import MessageRecv, MessageSending, Messag
 from src.chat.message_receive.message import UserInfo
 from src.chat.message_receive.chat_stream import ChatStream, get_chat_manager
 from src.chat.message_receive.message_sender import message_manager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.logger import get_logger
 
 logger = get_logger("normal_chat_expressor")
@@ -60,8 +60,8 @@ class NormalChatExpressor:
         thinking_time_point = time.time()
 
         bot_user_info = UserInfo(
-            user_id=global_config.bot.qq_account,
-            user_nickname=global_config.bot.nickname,
+            user_id=get_global_config_obj().bot.qq_account,
+            user_nickname=get_global_config_obj().bot.nickname,
             platform=messageinfo.platform,
         )
 
@@ -186,8 +186,8 @@ class NormalChatExpressor:
             MessageSending: 构建的发送消息
         """
         bot_user_info = UserInfo(
-            user_id=global_config.bot.qq_account,
-            user_nickname=global_config.bot.nickname,
+            user_id=get_global_config_obj().bot.qq_account,
+            user_nickname=get_global_config_obj().bot.nickname,
             platform=anchor_message.message_info.platform if anchor_message else "unknown",
         )
 

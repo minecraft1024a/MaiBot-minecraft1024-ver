@@ -9,7 +9,7 @@
 
 from typing import Any
 from src.common.logger import get_logger
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.person_info.person_info import get_person_info_manager
 
 logger = get_logger("config_api")
@@ -34,7 +34,7 @@ def get_global_config(key: str, default: Any = None) -> Any:
     """
     # 支持嵌套键访问
     keys = key.split(".")
-    current = global_config
+    current = get_global_config_obj()
 
     try:
         for k in keys:

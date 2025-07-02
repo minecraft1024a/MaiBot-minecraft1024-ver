@@ -1,7 +1,7 @@
 from src.chat.heart_flow.observation.chatting_observation import ChattingObservation
 from src.chat.heart_flow.observation.observation import Observation
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 import time
 import traceback
 from src.common.logger import get_logger
@@ -53,7 +53,7 @@ class WorkingMemoryProcessor(BaseProcessor):
         self.subheartflow_id = subheartflow_id
 
         self.llm_model = LLMRequest(
-            model=global_config.model.planner,
+            model=get_global_config_obj().model.planner,
             request_type="focus.processor.working_memory",
         )
 
@@ -99,7 +99,7 @@ class WorkingMemoryProcessor(BaseProcessor):
 
             # 使用提示模板进行处理
             prompt = (await global_prompt_manager.get_prompt_async("prompt_memory_proces")).format(
-                bot_name=global_config.bot.nickname,
+                bot_name=get_global_config_obj().bot.nickname,
                 time_now=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 chat_observe_info=chat_info,
                 memory_str=memory_choose_str,

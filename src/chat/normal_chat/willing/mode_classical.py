@@ -1,6 +1,6 @@
 import asyncio
 
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from .willing_manager import BaseWillingManager
 
 
@@ -25,7 +25,7 @@ class ClassicalWillingManager(BaseWillingManager):
         chat_id = willing_info.chat_id
         current_willing = self.chat_reply_willing.get(chat_id, 0)
 
-        interested_rate = willing_info.interested_rate * global_config.normal_chat.response_interested_rate_amplifier
+        interested_rate = willing_info.interested_rate * get_global_config_obj().normal_chat.response_interested_rate_amplifier
 
         if interested_rate > 0.4:
             current_willing += interested_rate - 0.3
@@ -35,8 +35,8 @@ class ClassicalWillingManager(BaseWillingManager):
 
         is_emoji_not_reply = False
         if willing_info.is_emoji:
-            if global_config.normal_chat.emoji_response_penalty != 0:
-                current_willing *= global_config.normal_chat.emoji_response_penalty
+            if get_global_config_obj().normal_chat.emoji_response_penalty != 0:
+                current_willing *= get_global_config_obj().normal_chat.emoji_response_penalty
             else:
                 is_emoji_not_reply = True
 

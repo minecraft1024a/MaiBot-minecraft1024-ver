@@ -10,7 +10,7 @@
 from typing import Tuple, Dict, Any
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 logger = get_logger("llm_api")
 
@@ -27,11 +27,11 @@ def get_available_models() -> Dict[str, Any]:
         Dict[str, Any]: 模型配置字典，key为模型名称，value为模型配置
     """
     try:
-        if not hasattr(global_config, "model"):
+        if not hasattr(get_global_config_obj(), "model"):
             logger.error("[LLMAPI] 无法获取模型列表：全局配置中未找到 model 配置")
             return {}
 
-        models = global_config.model
+        models = get_global_config_obj().model
         return models
     except Exception as e:
         logger.error(f"[LLMAPI] 获取可用模型失败: {e}")

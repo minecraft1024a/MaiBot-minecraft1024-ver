@@ -1,5 +1,5 @@
 import time
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.message_repository import count_messages
 
 
@@ -14,7 +14,7 @@ def get_recent_message_stats(minutes: int = 30, chat_id: str = None) -> dict:
 
     now = time.time()
     start_time = now - minutes * 60
-    bot_id = global_config.bot.qq_account
+    bot_id = get_global_config_obj().bot.qq_account
 
     filter_base = {"time": {"$gte": start_time}}
     if chat_id is not None:

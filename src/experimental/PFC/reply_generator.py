@@ -1,7 +1,7 @@
 from typing import Tuple, List, Dict, Any
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.experimental.PFC.chat_observer import ChatObserver
 from src.experimental.PFC.reply_checker import ReplyChecker
 from src.individuality.individuality import get_individuality
@@ -87,12 +87,12 @@ class ReplyGenerator:
 
     def __init__(self, stream_id: str, private_name: str):
         self.llm = LLMRequest(
-            model=global_config.llm_PFC_chat,
-            temperature=global_config.llm_PFC_chat["temp"],
+            model=get_global_config_obj().llm_PFC_chat,
+            temperature=get_global_config_obj().llm_PFC_chat["temp"],
             request_type="reply_generation",
         )
         self.personality_info = get_individuality().get_prompt(x_person=2, level=3)
-        self.name = global_config.bot.nickname
+        self.name = get_global_config_obj().bot.nickname
         self.private_name = private_name
         self.chat_observer = ChatObserver.get_instance(stream_id, private_name)
         self.reply_checker = ReplyChecker(stream_id, private_name)

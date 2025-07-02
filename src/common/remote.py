@@ -5,7 +5,7 @@ import platform
 
 from src.common.logger import get_logger
 from src.common.tcp_connector import get_tcp_connector
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.manager.async_task_manager import AsyncTask
 from src.manager.local_store_manager import local_storage
 
@@ -35,7 +35,7 @@ class TelemetryHeartBeatTask(AsyncTask):
         info_dict = {
             "os_type": "Unknown",
             "py_version": platform.python_version(),
-            "mmc_version": global_config.MMC_VERSION,
+            "mmc_version": get_global_config_obj().MMC_VERSION,
         }
 
         match platform.system():
@@ -157,7 +157,7 @@ class TelemetryHeartBeatTask(AsyncTask):
 
     async def run(self):
         # 发送心跳
-        if global_config.telemetry.enable:
+        if get_global_config_obj().telemetry.enable:
             if self.client_uuid is None and not await self._req_uuid():
                 logger.warning("获取UUID失败，跳过此次心跳")
                 return

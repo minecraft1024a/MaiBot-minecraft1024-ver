@@ -1,5 +1,5 @@
 from datetime import datetime
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.utils.chat_message_builder import (
     get_raw_msg_before_timestamp_with_chat,
     build_readable_messages,
@@ -65,10 +65,10 @@ class ChattingObservation(Observation):
         self.talking_message_str_truncate = ""
         self.talking_message_str_short = ""
         self.talking_message_str_truncate_short = ""
-        self.name = global_config.bot.nickname
-        self.nick_name = global_config.bot.alias_names
-        self.max_now_obs_len = global_config.focus_chat.observation_context_size
-        self.overlap_len = global_config.focus_chat.compressed_length
+        self.name = get_global_config_obj().bot.nickname
+        self.nick_name = get_global_config_obj().bot.alias_names
+        self.max_now_obs_len = get_global_config_obj().focus_chat.observation_context_size
+        self.overlap_len = get_global_config_obj().focus_chat.compressed_length
         self.person_list = []
         self.compressor_prompt = ""
         self.oldest_messages = []

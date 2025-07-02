@@ -32,7 +32,7 @@ from src.chat.message_receive.message import MessageSending, MessageRecv
 from src.chat.utils.chat_message_builder import get_raw_msg_before_timestamp_with_chat
 from src.person_info.person_info import get_person_info_manager
 from maim_message import Seg, UserInfo
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 logger = get_logger("send_api")
 
@@ -82,8 +82,8 @@ async def _send_to_target(
 
         # 构建机器人用户信息
         bot_user_info = UserInfo(
-            user_id=global_config.bot.qq_account,
-            user_nickname=global_config.bot.nickname,
+            user_id=get_global_config_obj().bot.qq_account,
+            user_nickname=get_global_config_obj().bot.nickname,
             platform=target_stream.platform,
         )
 

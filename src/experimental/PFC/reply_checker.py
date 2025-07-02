@@ -2,7 +2,7 @@ import json
 from typing import Tuple, List, Dict, Any
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.experimental.PFC.chat_observer import ChatObserver
 from maim_message import UserInfo
 
@@ -14,9 +14,9 @@ class ReplyChecker:
 
     def __init__(self, stream_id: str, private_name: str):
         self.llm = LLMRequest(
-            model=global_config.llm_PFC_reply_checker, temperature=0.50, max_tokens=1000, request_type="reply_check"
+            model=get_global_config_obj().llm_PFC_reply_checker, temperature=0.50, max_tokens=1000, request_type="reply_check"
         )
-        self.name = global_config.bot.nickname
+        self.name = get_global_config_obj().bot.nickname
         self.private_name = private_name
         self.chat_observer = ChatObserver.get_instance(stream_id, private_name)
         self.max_retries = 3  # 最大重试次数
@@ -43,7 +43,7 @@ class ReplyChecker:
             bot_messages = []
             for msg in reversed(chat_history):
                 user_info = UserInfo.from_dict(msg.get("user_info", {}))
-                if str(user_info.user_id) == str(global_config.bot.qq_account):  # 确保比较的是字符串
+                if str(user_info.user_id) == str(get_global_config_obj().bot.qq_account):  # 确保比较的是字符串
                     bot_messages.append(msg.get("processed_plain_text", ""))
                 if len(bot_messages) >= 2:  # 只和最近的两条比较
                     break

@@ -11,7 +11,7 @@ from src.chat.message_receive.storage import MessageStorage
 from src.experimental.PFC.pfc_manager import PFCManager
 from src.chat.focus_chat.heartflow_message_processor import HeartFCMessageReceiver
 from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.plugin_system.core.component_registry import component_registry  # 导入新插件系统
 from src.plugin_system.base.base_command import BaseCommand
 from src.chat.utils.utils import is_mentioned_bot_in_message
@@ -42,7 +42,7 @@ class ChatBot:
 
     async def _create_pfc_chat(self, message: MessageRecv):
         try:
-            if global_config.experimental.pfc_chatting:
+            if get_global_config_obj().experimental.pfc_chatting:
                 chat_id = str(message.chat_stream.stream_id)
                 private_name = str(message.message_info.user_info.user_nickname)
 
@@ -122,9 +122,9 @@ class ChatBot:
             await self._ensure_started()
 
             now = time.time()
-            mute_enable = getattr(global_config.chat, "mute_enable", True)
-            mute_keywords = getattr(global_config.chat, "mute_keywords", ["闭嘴", "别说话", "shut up"])
-            mute_duration = getattr(global_config.chat, "mute_duration", 300)
+            mute_enable = getattr(get_global_config_obj().chat, "mute_enable", True)
+            mute_keywords = getattr(get_global_config_obj().chat, "mute_keywords", ["闭嘴", "别说话", "shut up"])
+            mute_duration = getattr(get_global_config_obj().chat, "mute_duration", 300)
 
             # 先提取纯文本内容
             msg_text = message_data.get("processed_plain_text")
@@ -143,7 +143,7 @@ class ChatBot:
             user_info = message.message_info.user_info
             sent_message = message.message_info.additional_config.get("sent_message", False)
 
-            if user_info.user_id == global_config.bot.qq_account and sent_message: # 这一段只是为了在一切处理前劫持上报的自身消息，用于更新message_id，需要ada支持上报事件，实际测试中不会对正常使用造成任何问题
+            if user_info.user_id == get_global_config_obj().bot.qq_account and sent_message: # 这一段只是为了在一切处理前劫持上报的自身消息，用于更新message_id，需要ada支持上报事件，实际测试中不会对正常使用造成任何问题
                 await message.process()
                 await MessageStorage.update_message(message)
                 return
@@ -244,7 +244,7 @@ class ChatBot:
                 # 如果在私聊中
                 if group_info is None:
                     logger.debug("检测到私聊消息")
-                    if global_config.experimental.pfc_chatting:
+                    if get_global_config_obj().experimental.pfc_chatting:
                         logger.debug("进入PFC私聊处理流程")
                         # 创建聊天流
                         logger.debug(f"为{user_info.user_id}创建/获取聊天流")

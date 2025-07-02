@@ -4,7 +4,7 @@ import asyncio
 import random
 from typing import Any, Dict
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.logger import get_logger
 from peewee import Model, CharField, DateTimeField, AutoField
 from src.common.database.database import db
@@ -46,6 +46,7 @@ class MaibotMindManager:
         """
         now = datetime.datetime.now()
         date_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        global_config = get_global_config_obj()
         name = getattr(global_config.identity, 'nickname', '麦麦')
         personality = getattr(global_config.personality, 'personality_core', '')
         behavior = getattr(global_config.personality, 'personality_sides', '')

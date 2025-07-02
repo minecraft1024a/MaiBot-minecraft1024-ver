@@ -1,6 +1,6 @@
 from src.common.logger import get_logger
 from dataclasses import dataclass
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.message_receive.chat_stream import ChatStream, GroupInfo
 from src.chat.message_receive.message import MessageRecv
 from src.person_info.person_info import PersonInfoManager, get_person_info_manager
@@ -170,7 +170,7 @@ def init_willing_manager() -> BaseWillingManager:
     Returns:
         对应mode的WillingManager实例
     """
-    mode = global_config.normal_chat.willing_mode.lower()
+    mode = get_global_config_obj().normal_chat.willing_mode.lower()
     return BaseWillingManager.create(mode)
 
 

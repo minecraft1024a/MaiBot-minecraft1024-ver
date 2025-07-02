@@ -1,4 +1,4 @@
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from typing import List, Dict, Any, Tuple  # 确保类型提示被导入
 import time  # 导入 time 模块以获取当前时间
 import random
@@ -228,7 +228,7 @@ def _build_readable_messages_internal(
             content = msg.get("display_message", "")
             # 对于动作记录，也处理图片ID
             content = process_pic_ids(content)
-            message_details_raw.append((timestamp, global_config.bot.nickname, content, is_action))
+            message_details_raw.append((timestamp, get_global_config_obj().bot.nickname, content, is_action))
             continue
 
         # 检查并修复缺少的user_info字段
@@ -269,8 +269,8 @@ def _build_readable_messages_internal(
         person_id = PersonInfoManager.get_person_id(platform, user_id)
         person_info_manager = get_person_info_manager()
         # 根据 replace_bot_name 参数决定是否替换机器人名称
-        if replace_bot_name and user_id == global_config.bot.qq_account:
-            person_name = f"{global_config.bot.nickname}(你)"
+        if replace_bot_name and user_id == get_global_config_obj().bot.qq_account:
+            person_name = f"{get_global_config_obj().bot.nickname}(你)"
         else:
             person_name = person_info_manager.get_value_sync(person_id, "person_name")
 
@@ -584,8 +584,8 @@ def build_readable_messages(
             if action.action_build_into_prompt:
                 action_msg = {
                     "time": action.time,
-                    "user_id": global_config.bot.qq_account,  # 使用机器人的QQ账号
-                    "user_nickname": global_config.bot.nickname,  # 使用机器人的昵称
+                    "user_id": get_global_config_obj().bot.qq_account,  # 使用机器人的QQ账号
+                    "user_nickname": get_global_config_obj().bot.nickname,  # 使用机器人的昵称
                     "user_cardname": "",  # 机器人没有群名片
                     "processed_plain_text": f"{action.action_prompt_display}",
                     "display_message": f"{action.action_prompt_display}",
@@ -699,7 +699,7 @@ async def build_anonymous_messages(messages: List[Dict[str, Any]]) -> str:
         # print(f"get_anon_name: platform:{platform}, user_id:{user_id}")
         # print(f"global_config.bot.qq_account:{global_config.bot.qq_account}")
 
-        if user_id == global_config.bot.qq_account:
+        if user_id == get_global_config_obj().bot.qq_account:
             # print("SELF11111111111111")
             return "SELF"
         try:
@@ -812,7 +812,7 @@ async def get_person_id_list(messages: List[Dict[str, Any]]) -> List[str]:
         user_id = msg.get("user_id")
 
         # 检查必要信息是否存在 且 不是机器人自己
-        if not all([platform, user_id]) or user_id == global_config.bot.qq_account:
+        if not all([platform, user_id]) or user_id == get_global_config_obj().bot.qq_account:
             continue
 
         person_id = PersonInfoManager.get_person_id(platform, user_id)

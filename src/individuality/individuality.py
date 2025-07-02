@@ -13,7 +13,7 @@ import hashlib
 from rich.traceback import install
 from src.common.logger import get_logger
 from src.person_info.person_info import get_person_info_manager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 install(extra_lines=3)
 
@@ -34,7 +34,7 @@ class Individuality:
         self.meta_info_file_path = "data/personality/meta.json"
 
         self.model = LLMRequest(
-            model=global_config.model.utils,
+            model=get_global_config_obj().model.utils,
             request_type="individuality.compress",
         )
 
@@ -332,7 +332,7 @@ class Individuality:
             "nickname": bot_nickname,
             "personality_core": personality_core,
             "personality_sides": sorted(personality_sides),
-            "compress_personality": global_config.personality.compress_personality,
+            "compress_personality": get_global_config_obj().personality.compress_personality,
         }
         personality_str = json.dumps(personality_config, sort_keys=True)
         personality_hash = hashlib.md5(personality_str.encode("utf-8")).hexdigest()
@@ -340,7 +340,7 @@ class Individuality:
         # 身份配置哈希
         identity_config = {
             "identity_detail": sorted(identity_detail),
-            "compress_identity": global_config.identity.compress_indentity,
+            "compress_identity": get_global_config_obj().identity.compress_indentity,
         }
         identity_str = json.dumps(identity_config, sort_keys=True)
         identity_hash = hashlib.md5(identity_str.encode("utf-8")).hexdigest()
@@ -472,7 +472,7 @@ class Individuality:
             personality_parts.append(f"{personality_core}")
 
         # 准备需要压缩的内容
-        if global_config.personality.compress_personality:
+        if get_global_config_obj().personality.compress_personality:
             personality_to_compress = []
             if personality_sides:
                 personality_to_compress.append(f"人格特质: {'、'.join(personality_sides)}")
@@ -509,7 +509,7 @@ class Individuality:
         """使用LLM创建压缩版本的impression"""
         logger.info("正在构建身份.........")
 
-        if global_config.identity.compress_indentity:
+        if get_global_config_obj().identity.compress_indentity:
             identity_to_compress = []
             if identity_detail:
                 identity_to_compress.append(f"身份背景: {'、'.join(identity_detail)}")

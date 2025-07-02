@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict
 import datetime
 import asyncio
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 import json  # 新增导入
 from json_repair import repair_json
@@ -56,7 +56,7 @@ class PersonInfoManager:
         self.person_name_list = {}
         # TODO: API-Adapter修改标记
         self.qv_name_llm = LLMRequest(
-            model=global_config.model.utils,
+            model=get_global_config_obj().model.utils,
             request_type="relation.qv_name",
         )
         try:
@@ -302,7 +302,7 @@ class PersonInfoManager:
 
         while current_try < max_retries:
             # prompt_personality =get_individuality().get_prompt(x_person=2, level=1)
-            bot_name = global_config.bot.nickname
+            bot_name = get_global_config_obj().bot.nickname
 
             qv_name_prompt = f"你是{bot_name}，一个伪装成人类的AI，你不能让别人发现这一点，"
             qv_name_prompt += f"现在你想给一个用户取一个昵称，用户的qq昵称是{user_nickname}，"

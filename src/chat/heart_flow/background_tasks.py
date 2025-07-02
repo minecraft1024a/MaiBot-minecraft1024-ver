@@ -3,7 +3,7 @@ import traceback
 from typing import Optional, Coroutine, Callable, Any, List
 from src.common.logger import get_logger
 from src.chat.heart_flow.subheartflow_manager import SubHeartflowManager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 logger = get_logger("background_tasks")
 
@@ -68,7 +68,7 @@ class BackgroundTaskManager:
         task_configs = []
 
         # 根据 chat_mode 条件添加其他任务
-        if not (global_config.chat.chat_mode == "normal"):
+        if not (get_global_config_obj().chat.chat_mode == "normal"):
             task_configs.extend(
                 [
                     (

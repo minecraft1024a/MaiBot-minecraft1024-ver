@@ -27,7 +27,7 @@ from src.chat.focus_chat.info_processors.expression_selector_processor import Ex
 from src.chat.focus_chat.planners.planner_factory import PlannerFactory
 from src.chat.focus_chat.planners.modify_actions import ActionModifier
 from src.chat.focus_chat.planners.action_manager import ActionManager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.focus_chat.hfc_performance_logger import HFCPerformanceLogger
 from src.chat.focus_chat.hfc_version_manager import get_hfc_version
 from src.chat.focus_chat.info.relation_info import RelationInfo
@@ -117,7 +117,7 @@ class HeartFChatting:
         self._register_observations()
 
         # 根据配置文件和默认规则确定启用的处理器
-        config_processor_settings = global_config.focus_chat_processor
+        config_processor_settings = get_global_config_obj().focus_chat_processor
         self.enabled_processor_names = []
 
         for proc_name, (_proc_class, config_key) in PROCESSOR_CLASSES.items():
@@ -130,7 +130,7 @@ class HeartFChatting:
         for proc_name, (_proc_class, config_key) in POST_PLANNING_PROCESSOR_CLASSES.items():
             # 对于关系处理器，需要同时检查两个配置项
             if proc_name == "PersonImpressionpProcessor":
-                if global_config.relationship.enable_relationship and getattr(
+                if get_global_config_obj().relationship.enable_relationship and getattr(
                     config_processor_settings, config_key, True
                 ):
                     self.enabled_post_planning_processor_names.append(proc_name)
@@ -186,7 +186,7 @@ class HeartFChatting:
                 # 检查是否需要跳过WorkingMemoryObservation
                 if name == "WorkingMemoryObservation":
                     # 如果工作记忆处理器被禁用，则跳过WorkingMemoryObservation
-                    if not global_config.focus_chat_processor.working_memory_processor:
+                    if not get_global_config_obj().focus_chat_processor.working_memory_processor:
                         logger.debug(f"{self.log_prefix} 工作记忆处理器已禁用，跳过注册观察器 {name}")
                         continue
 
@@ -497,7 +497,7 @@ class HeartFChatting:
                     except Exception as perf_e:
                         logger.warning(f"{self.log_prefix} 记录性能数据失败: {perf_e}")
 
-                    await asyncio.sleep(global_config.focus_chat.think_interval)
+                    await asyncio.sleep(get_global_config_obj().focus_chat.think_interval)
 
                 except asyncio.CancelledError:
                     logger.info(f"{self.log_prefix} 循环处理时任务被取消")
@@ -578,7 +578,7 @@ class HeartFChatting:
             async def run_with_timeout(proc=processor):
                 return await asyncio.wait_for(
                     proc.process_info(observations=observations),
-                    timeout=global_config.focus_chat.processor_max_time,
+                    timeout=get_global_config_obj().focus_chat.processor_max_time,
                 )
 
             task = asyncio.create_task(run_with_timeout())
@@ -609,9 +609,9 @@ class HeartFChatting:
                     processor_time_costs[processor_name] = duration_since_parallel_start
                 except asyncio.TimeoutError:
                     logger.info(
-                        f"{self.log_prefix} 处理器 {processor_name} 超时（>{global_config.focus_chat.processor_max_time}s），已跳过"
+                        f"{self.log_prefix} 处理器 {processor_name} 超时（>{get_global_config_obj().focus_chat.processor_max_time}s），已跳过"
                     )
-                    processor_time_costs[processor_name] = global_config.focus_chat.processor_max_time
+                    processor_time_costs[processor_name] = get_global_config_obj().focus_chat.processor_max_time
                 except Exception as e:
                     logger.error(
                         f"{self.log_prefix} 处理器 {processor_name} 执行失败，耗时 (自并行开始): {duration_since_parallel_start:.2f}秒. 错误: {e}",
@@ -661,7 +661,7 @@ class HeartFChatting:
             async def run_processor_with_timeout(proc=processor):
                 return await asyncio.wait_for(
                     proc.process_info(observations=observations),
-                    timeout=global_config.focus_chat.processor_max_time,
+                    timeout=get_global_config_obj().focus_chat.processor_max_time,
                 )
 
             task = asyncio.create_task(run_processor_with_timeout())
@@ -717,7 +717,7 @@ class HeartFChatting:
                 except asyncio.TimeoutError:
                     if task_type == "processor":
                         logger.warning(
-                            f"{self.log_prefix} 后期处理器 {task_name} 超时（>{global_config.focus_chat.processor_max_time}s），已跳过"
+                            f"{self.log_prefix} 后期处理器 {task_name} 超时（>{get_global_config_obj().focus_chat.processor_max_time}s），已跳过"
                         )
                     elif task_type == "memory":
                         logger.warning(f"{self.log_prefix} 记忆激活器超时（>{MEMORY_ACTIVATION_TIMEOUT}s），已跳过")
@@ -802,7 +802,7 @@ class HeartFChatting:
                 try:
                     result = await asyncio.wait_for(
                         proc.process_info(observations=observations),
-                        timeout=global_config.focus_chat.processor_max_time,
+                        timeout=get_global_config_obj().focus_chat.processor_max_time,
                     )
                     end_time = time.time()
                     post_processor_time_costs[name] = end_time - start_time
@@ -883,7 +883,7 @@ class HeartFChatting:
                     if task_type == "processor":
                         post_processor_time_costs[task_name] = elapsed_time
                         logger.warning(
-                            f"{self.log_prefix} 后期处理器 {task_name} 超时（>{global_config.focus_chat.processor_max_time}s），已跳过，耗时: {elapsed_time:.3f}秒"
+                            f"{self.log_prefix} 后期处理器 {task_name} 超时（>{get_global_config_obj().focus_chat.processor_max_time}s），已跳过，耗时: {elapsed_time:.3f}秒"
                         )
                     elif task_type == "memory":
                         post_processor_time_costs["MemoryActivator"] = elapsed_time

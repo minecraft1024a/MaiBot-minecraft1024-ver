@@ -1,7 +1,7 @@
 from src.chat.heart_flow.observation.chatting_observation import ChattingObservation
 from src.chat.heart_flow.observation.observation import Observation
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 import time
 import traceback
 from src.common.logger import get_logger
@@ -82,8 +82,8 @@ logger = get_logger("processor")
 def _generate_random_prompt_example() -> str:
     """动态生成一个随机的、符合规则的JSON示例字符串"""
 
-    bot_nickname = global_config.bot.nickname
-    bot_aliases = list(global_config.bot.alias_names)
+    bot_nickname = get_global_config_obj().bot.nickname
+    bot_aliases = list(get_global_config_obj().bot.alias_names)
 
     # 确定示例数量
     num_user_examples = random.randint(1, 2)
@@ -198,13 +198,13 @@ class PersonImpressionpProcessor(BaseProcessor):
         self.last_cleanup_time = 0.0
 
         self.llm_model = LLMRequest(
-            model=global_config.model.relation,
+            model=get_global_config_obj().model.relation,
             request_type="focus.relationship",
         )
 
         # 小模型用于即时信息提取
         self.instant_llm_model = LLMRequest(
-            model=global_config.model.utils_small,
+            model=get_global_config_obj().model.utils_small,
             request_type="focus.relationship.instant",
         )
 
@@ -573,7 +573,7 @@ class PersonImpressionpProcessor(BaseProcessor):
                             if (
                                 user_id
                                 and platform
-                                and user_id != global_config.bot.qq_account
+                                and user_id != get_global_config_obj().bot.qq_account
                                 and msg_time > self.last_processed_message_time
                             ):
                                 from src.person_info.person_info import PersonInfoManager
@@ -619,8 +619,8 @@ class PersonImpressionpProcessor(BaseProcessor):
                 del self.info_fetched_cache[person_id]
 
         # 5. 为需要处理的人员准备LLM prompt
-        nickname_str = ",".join(global_config.bot.alias_names)
-        name_block = f"你的名字是{global_config.bot.nickname},你的昵称有{nickname_str}，有人也会用这些昵称称呼你。"
+        nickname_str = ",".join(get_global_config_obj().bot.alias_names)
+        name_block = f"你的名字是{get_global_config_obj().bot.nickname},你的昵称有{nickname_str}，有人也会用这些昵称称呼你。"
 
         info_cache_block = ""
         if self.info_fetching_cache:
@@ -642,7 +642,7 @@ class PersonImpressionpProcessor(BaseProcessor):
 
         prompt = (await global_prompt_manager.get_prompt_async("relationship_prompt")).format(
             name_block=name_block,
-            bot_name=global_config.bot.nickname,
+            bot_name=get_global_config_obj().bot.nickname,
             time_now=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
             chat_observe_info=chat_observe_info,
             info_cache_block=info_cache_block,
@@ -668,7 +668,8 @@ class PersonImpressionpProcessor(BaseProcessor):
                     person_info_manager = get_person_info_manager()
                     for person_name, info_type in content_json.items():
                         is_bot = (
-                            person_name == global_config.bot.nickname or person_name in global_config.bot.alias_names
+                            person_name == get_global_config_obj().bot.nickname
+                            or person_name in get_global_config_obj().bot.alias_names
                         )
                         if is_bot:
                             person_id = person_info_manager.get_person_id("system", "bot_id")
@@ -934,16 +935,16 @@ class PersonImpressionpProcessor(BaseProcessor):
 
             if is_bot:
                 prompt = (await global_prompt_manager.get_prompt_async("fetch_bot_info_prompt")).format(
-                    nickname=global_config.bot.nickname,
-                    alias_names=",".join(global_config.bot.alias_names),
+                    nickname=get_global_config_obj().bot.nickname,
+                    alias_names=",".join(get_global_config_obj().bot.alias_names),
                     info_type=info_type,
                     person_impression_block=person_impression_block,
                     points_text_block=points_text_block,
                 )
             else:
-                nickname_str = ",".join(global_config.bot.alias_names)
+                nickname_str = ",".join(get_global_config_obj().bot.alias_names)
                 name_block = (
-                    f"你的名字是{global_config.bot.nickname},你的昵称有{nickname_str}，有人也会用这些昵称称呼你。"
+                    f"你的名字是{get_global_config_obj().bot.nickname},你的昵称有{nickname_str}，有人也会用这些昵称称呼你。"
                 )
                 prompt = (await global_prompt_manager.get_prompt_async("fetch_person_info_prompt")).format(
                     name_block=name_block,

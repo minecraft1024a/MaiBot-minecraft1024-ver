@@ -17,7 +17,7 @@ from ..message_receive.message import MessageSending, MessageRecv, MessageThinki
 from src.chat.message_receive.message_sender import message_manager
 from src.chat.normal_chat.willing.willing_manager import get_willing_manager
 from src.chat.normal_chat.normal_chat_utils import get_recent_message_stats
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.focus_chat.planners.action_manager import ActionManager
 from src.chat.normal_chat.normal_chat_planner import NormalChatPlanner
 from src.chat.normal_chat.normal_chat_action_modifier import NormalChatActionModifier
@@ -32,10 +32,9 @@ from src.chat.utils.chat_message_builder import (
     num_new_messages_since,
 )
 from src.schedule_system.maibot_mind_manager import MaibotMindManager
-from src.config.config import global_config
 
 # 全局mind_manager实例，避免重复初始化
-_mind_manager = MaibotMindManager(model_config=global_config.model.schedule)
+_mind_manager = MaibotMindManager(model_config=get_global_config_obj().model.schedule)
 
 willing_manager = get_willing_manager()
 
@@ -81,7 +80,7 @@ class NormalChat:
         self.action_manager = ActionManager()
         self.planner = NormalChatPlanner(self.stream_name, self.action_manager)
         self.action_modifier = NormalChatActionModifier(self.action_manager, self.stream_id, self.stream_name)
-        self.enable_planner = global_config.normal_chat.enable_planner  # 从配置中读取是否启用planner
+        self.enable_planner = get_global_config_obj().normal_chat.enable_planner  # 从配置中读取是否启用planner
 
         # 记录最近的回复内容，每项包含: {time, user_message, response, is_mentioned, is_reference_reply}
         self.recent_replies = []
@@ -394,7 +393,7 @@ class NormalChat:
         msg_time = message.message_info.time
 
         # 跳过机器人自己的消息
-        if user_id == global_config.bot.qq_account:
+        if user_id == get_global_config_obj().bot.qq_account:
             return
 
         # 只处理新消息（避免重复处理）
@@ -416,8 +415,8 @@ class NormalChat:
         messageinfo = message.message_info
 
         bot_user_info = UserInfo(
-            user_id=global_config.bot.qq_account,
-            user_nickname=global_config.bot.nickname,
+            user_id=get_global_config_obj().bot.qq_account,
+            user_nickname=get_global_config_obj().bot.nickname,
             platform=messageinfo.platform,
         )
 
@@ -459,15 +458,15 @@ class NormalChat:
         mark_head = False
         first_bot_msg = None
         for msg in response_set:
-            if global_config.experimental.debug_show_chat_mode:
+            if get_global_config_obj().experimental.debug_show_chat_mode:
                 msg += "ⁿ"
             message_segment = Seg(type="text", data=msg)
             bot_message = MessageSending(
                 message_id=thinking_id,
                 chat_stream=self.chat_stream,  # 使用 self.chat_stream
                 bot_user_info=UserInfo(
-                    user_id=global_config.bot.qq_account,
-                    user_nickname=global_config.bot.nickname,
+                    user_id=get_global_config_obj().bot.qq_account,
+                    user_nickname=get_global_config_obj().bot.nickname,
                     platform=message.message_info.platform,
                 ),
                 sender_info=message.message_info.user_info,
@@ -613,7 +612,7 @@ class NormalChat:
             return
 
         # 新增：在auto模式下检查是否需要直接切换到focus模式
-        if global_config.chat.chat_mode == "auto":
+        if get_global_config_obj().chat.chat_mode == "auto":
             should_switch = await self._check_should_switch_to_focus()
             if should_switch:
                 logger.info(f"[{self.stream_name}] 检测到切换到focus聊天模式的条件，直接执行切换")
@@ -634,7 +633,7 @@ class NormalChat:
 
         timing_results = {}
         reply_probability = (
-            1.0 if is_mentioned and global_config.normal_chat.mentioned_bot_inevitable_reply else 0.0
+            1.0 if is_mentioned and get_global_config_obj().normal_chat.mentioned_bot_inevitable_reply else 0.0
         )  # 如果被提及，且开启了提及必回复，则基础概率为1，否则需要意愿判断
 
         # 意愿管理器：设置当前message信息
@@ -1000,7 +999,7 @@ class NormalChat:
         """
         根据预设规则动态调整回复意愿（willing_amplifier）。
         - 评估周期：10分钟
-        - 目标频率：由 global_config.chat.talk_frequency 定义（例如 1条/分钟）
+        - 目标频率：由 get_global_config_obj().chat.talk_frequency 定义（例如 1条/分钟）
         - 调整逻辑：
             - 0条回复 -> 5.0x 意愿
             - 达到目标回复数 -> 1.0x 意愿（基准）
@@ -1010,7 +1009,7 @@ class NormalChat:
         """
         # --- 1. 定义参数 ---
         evaluation_minutes = 10.0
-        target_replies_per_min = global_config.chat.get_current_talk_frequency(
+        target_replies_per_min = get_global_config_obj().chat.get_current_talk_frequency(
             self.stream_id
         )  # 目标频率：e.g. 1条/分钟
         target_replies_in_window = target_replies_per_min * evaluation_minutes  # 10分钟内的目标回复数
@@ -1222,7 +1221,7 @@ class NormalChat:
         container = await message_manager.get_container(self.stream_id)
         if container:
             thinking_count = sum(1 for msg in container.messages if isinstance(msg, MessageThinking))
-            if thinking_count >= 4 * global_config.chat.auto_focus_threshold:  # 如果堆积超过阈值条思考消息
+            if thinking_count >= 4 * get_global_config_obj().chat.auto_focus_threshold:  # 如果堆积超过阈值条思考消息
                 logger.debug(f"[{self.stream_name}] 检测到思考消息堆积({thinking_count}条)，切换到focus模式")
                 return True
 
@@ -1230,8 +1229,8 @@ class NormalChat:
             return False
 
         current_time = time.time()
-        time_threshold = 120 / global_config.chat.auto_focus_threshold
-        reply_threshold = 6 * global_config.chat.auto_focus_threshold
+        time_threshold = 120 / get_global_config_obj().chat.auto_focus_threshold
+        reply_threshold = 6 * get_global_config_obj().chat.auto_focus_threshold
 
         one_minute_ago = current_time - time_threshold
 

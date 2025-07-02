@@ -4,7 +4,7 @@ from src.person_info.person_info import PersonInfoManager, get_person_info_manag
 import time
 import random
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.utils.chat_message_builder import build_readable_messages
 from src.manager.mood_manager import mood_manager
 import json
@@ -26,7 +26,7 @@ class RelationshipManager:
         self._mood_manager = None
 
         self.relationship_llm = LLMRequest(
-            model=global_config.model.relation,
+            model=get_global_config_obj().model.relation,
             request_type="relationship",  # 用于动作规划
         )
 
@@ -161,7 +161,7 @@ class RelationshipManager:
         person_name = await person_info_manager.get_value(person_id, "person_name")
         nickname = await person_info_manager.get_value(person_id, "nickname")
 
-        alias_str = ", ".join(global_config.bot.alias_names)
+        alias_str = ", ".join(get_global_config_obj().bot.alias_names)
         # personality_block =get_individuality().get_personality_prompt(x_person=2, level=2)
         # identity_block =get_individuality().get_identity_prompt(x_person=2, level=2)
 
@@ -189,8 +189,8 @@ class RelationshipManager:
             replace_person_name = await person_info_manager.get_value(replace_person_id, "person_name")
 
             # 跳过机器人自己
-            if replace_user_id == global_config.bot.qq_account:
-                name_mapping[f"{global_config.bot.nickname}"] = f"{global_config.bot.nickname}"
+            if replace_user_id == get_global_config_obj().bot.qq_account:
+                name_mapping[f"{get_global_config_obj().bot.nickname}"] = f"{get_global_config_obj().bot.nickname}"
                 continue
 
             # 跳过目标用户
@@ -216,8 +216,8 @@ class RelationshipManager:
             readable_messages = readable_messages.replace(f"{original_name}", f"{mapped_name}")
 
         prompt = f"""
-你的名字是{global_config.bot.nickname}，{global_config.bot.nickname}的别名是{alias_str}。
-请不要混淆你自己和{global_config.bot.nickname}和{person_name}。
+你的名字是{get_global_config_obj().bot.nickname}，{get_global_config_obj().bot.nickname}的别名是{alias_str}。
+请不要混淆你自己和{get_global_config_obj().bot.nickname}和{person_name}。
 请你基于用户 {person_name}(昵称:{nickname}) 的最近发言，总结出其中是否有有关{person_name}的内容引起了你的兴趣，或者有什么需要你记忆的点，或者对你友好或者不友好的点。
 如果没有，就输出none
 
@@ -405,7 +405,7 @@ class RelationshipManager:
             # 检查forgotten_points是否达到5条
             if len(forgotten_points) >= 10:
                 # 构建压缩总结提示词
-                alias_str = ", ".join(global_config.bot.alias_names)
+                alias_str = ", ".join(get_global_config_obj().bot.alias_names)
 
                 # 按时间排序forgotten_points
                 forgotten_points.sort(key=lambda x: x[2])
@@ -418,8 +418,8 @@ class RelationshipManager:
                 impression = await person_info_manager.get_value(person_id, "impression") or ""
 
                 compress_prompt = f"""
-你的名字是{global_config.bot.nickname}，{global_config.bot.nickname}的别名是{alias_str}。
-请不要混淆你自己和{global_config.bot.nickname}和{person_name}。
+你的名字是{get_global_config_obj().bot.nickname}，{get_global_config_obj().bot.nickname}的别名是{alias_str}。
+请不要混淆你自己和{get_global_config_obj().bot.nickname}和{person_name}。
 
 请根据你对ta过去的了解，和ta最近的行为，修改，整合，原有的了解，总结出对用户 {person_name}(昵称:{nickname})新的了解。
 
@@ -443,15 +443,15 @@ class RelationshipManager:
                 await person_info_manager.update_one_field(person_id, "impression", compressed_summary)
 
                 compress_short_prompt = f"""
-你的名字是{global_config.bot.nickname}，{global_config.bot.nickname}的别名是{alias_str}。
-请不要混淆你自己和{global_config.bot.nickname}和{person_name}。
+你的名字是{get_global_config_obj().bot.nickname}，{get_global_config_obj().bot.nickname}的别名是{alias_str}。
+请不要混淆你自己和{get_global_config_obj().bot.nickname}和{person_name}。
 
 你对{person_name}的了解是：
 {compressed_summary}
 
 请你用一句话概括你对{person_name}的了解。突出:
 1.对{person_name}的直观印象
-2.{global_config.bot.nickname}与{person_name}的关系
+2.{get_global_config_obj().bot.nickname}与{person_name}的关系
 3.{person_name}的关键信息
 请输出一段平文本，以陈诉自白的语气，输出你对{person_name}的概括，不要输出任何其他内容。
 """
@@ -465,7 +465,7 @@ class RelationshipManager:
                 await person_info_manager.update_one_field(person_id, "short_impression", compressed_short_summary)
 
                 relation_value_prompt = f"""
-你的名字是{global_config.bot.nickname}。
+你的名字是{get_global_config_obj().bot.nickname}。
 你最近对{person_name}的了解如下：
 {points_text}
 

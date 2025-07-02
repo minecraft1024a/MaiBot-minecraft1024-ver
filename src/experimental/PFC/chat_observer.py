@@ -4,7 +4,7 @@ import traceback
 from typing import Optional, Dict, Any, List
 from src.common.logger import get_logger
 from maim_message import UserInfo
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.experimental.PFC.chat_states import (
     NotificationManager,
     create_new_message_notification,
@@ -323,7 +323,7 @@ class ChatObserver:
         for msg in messages:
             try:
                 user_info = UserInfo.from_dict(msg.get("user_info", {}))
-                if user_info.user_id == global_config.bot.qq_account:
+                if user_info.user_id == get_global_config_obj().bot.qq_account:
                     self.update_bot_speak_time(msg["time"])
                 else:
                     self.update_user_speak_time(msg["time"])

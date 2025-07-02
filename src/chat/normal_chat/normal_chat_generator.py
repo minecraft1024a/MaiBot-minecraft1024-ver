@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 import random
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.message_receive.message import MessageThinking
 from src.chat.normal_chat.normal_prompt import prompt_builder
 from src.chat.utils.timer_calculator import Timer
@@ -17,15 +17,15 @@ class NormalChatGenerator:
     def __init__(self):
         # TODO: API-Adapter修改标记
         self.model_reasoning = LLMRequest(
-            model=global_config.model.replyer_1,
+            model=get_global_config_obj().model.replyer_1,
             request_type="normal.chat_1",
         )
         self.model_normal = LLMRequest(
-            model=global_config.model.replyer_2,
+            model=get_global_config_obj().model.replyer_2,
             request_type="normal.chat_2",
         )
 
-        self.model_sum = LLMRequest(model=global_config.model.memory_summary, temperature=0.7, request_type="relation")
+        self.model_sum = LLMRequest(model=get_global_config_obj().model.memory_summary, temperature=0.7, request_type="relation")
         self.current_model_type = "r1"  # 默认使用 R1
         self.current_model_name = "unknown model"
 
@@ -33,8 +33,8 @@ class NormalChatGenerator:
         self, message: MessageThinking, thinking_id: str, enable_planner: bool = False, available_actions=None
     ) -> Optional[Union[str, List[str]]]:
         """根据当前模型类型选择对应的生成函数"""
-        # 从global_config中获取模型概率值并选择模型
-        if random.random() < global_config.normal_chat.normal_chat_first_probability:
+        # 从get_global_config_obj中获取模型概率值并选择模型
+        if random.random() < get_global_config_obj().normal_chat.normal_chat_first_probability:
             current_model = self.model_reasoning
             self.current_model_name = current_model.model_name
         else:
@@ -50,7 +50,7 @@ class NormalChatGenerator:
         )
 
         if model_response:
-            logger.debug(f"{global_config.bot.nickname}的备选回复是：{model_response}")
+            logger.debug(f"{get_global_config_obj().bot.nickname}的备选回复是：{model_response}")
             model_response = process_llm_response(model_response)
 
             return model_response
@@ -118,7 +118,7 @@ class NormalChatGenerator:
             - "中立"：不表达明确立场或无关回应
             2. 从"开心,愤怒,悲伤,惊讶,平静,害羞,恐惧,厌恶,困惑"中选出最匹配的1个情感标签
             3. 按照"立场-情绪"的格式直接输出结果，例如："反对-愤怒"
-            4. 考虑回复者的人格设定为{global_config.personality.personality_core}
+            4. 考虑回复者的人格设定为{get_global_config_obj().personality.personality_core}
 
             对话示例：
             被回复：「A就是笨」

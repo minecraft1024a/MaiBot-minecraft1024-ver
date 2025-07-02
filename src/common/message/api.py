@@ -3,7 +3,7 @@ import os
 import importlib.metadata
 from maim_message import MessageServer
 from src.common.logger import get_logger
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 global_api = None
 
@@ -20,7 +20,7 @@ def get_global_api() -> MessageServer:
             version_compatible = False
 
         # 读取配置项
-        maim_message_config = global_config.maim_message
+        maim_message_config = get_global_config_obj().maim_message
 
         # 设置基本参数
         kwargs = {

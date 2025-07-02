@@ -4,7 +4,7 @@ import asyncio
 import random
 from typing import List, Dict, Any
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.logger import get_logger
 from src.common.database.database import db
 from peewee import Model, CharField, DateField, DateTimeField, TextField
@@ -54,6 +54,7 @@ class ScheduleManager:
         logger.info("[Schedule] 正在刷新日程表...")
         # 兼容 config 可能为对象或 dict
         refresh_prompt = None
+        global_config = get_global_config_obj()
         if hasattr(global_config.schedule, 'refresh_prompt'):
             refresh_prompt = getattr(global_config.schedule, 'refresh_prompt')
         elif isinstance(global_config.schedule, dict):
@@ -121,6 +122,7 @@ class ScheduleManager:
         now = datetime.datetime.now()
         date_str = now.strftime("%Y-%m-%d %H:%M:%S")
         # 构造 prompt，结合个性、行为、今日日程等
+        global_config = get_global_config_obj()
         name = getattr(global_config.identity, 'nickname', '机器人')
         personality = getattr(global_config.personality, 'personality_core', '')
         behavior = getattr(global_config.personality, 'personality_sides', '')

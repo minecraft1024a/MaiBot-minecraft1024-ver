@@ -1,7 +1,7 @@
 from src.chat.heart_flow.observation.chatting_observation import ChattingObservation
 from src.chat.heart_flow.observation.structure_observation import StructureObservation
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.logger import get_logger
 from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
 from datetime import datetime
@@ -69,7 +69,7 @@ class MemoryActivator:
     def __init__(self):
         # TODO: API-Adapter修改标记
         self.summary_model = LLMRequest(
-            model=global_config.model.memory_summary,
+            model=get_global_config_obj().model.memory_summary,
             temperature=0.7,
             request_type="focus.memory_activator",
         )
@@ -87,7 +87,7 @@ class MemoryActivator:
             List[Dict]: 激活的记忆列表
         """
         # 如果记忆系统被禁用，直接返回空列表
-        if not global_config.memory.enable_memory:
+        if not get_global_config_obj().memory.enable_memory:
             return []
 
         obs_info_text = ""

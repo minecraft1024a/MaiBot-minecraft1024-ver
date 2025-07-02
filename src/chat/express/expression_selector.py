@@ -6,7 +6,7 @@ import json
 import os
 import time
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.logger import get_logger
 from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
 
@@ -74,7 +74,7 @@ class ExpressionSelector:
         self.expression_learner = get_expression_learner()
         # TODO: API-Adapter修改标记
         self.llm_model = LLMRequest(
-            model=global_config.model.utils_small,
+            model=get_global_config_obj().model.utils_small,
             request_type="expression.selector",
         )
 
@@ -202,7 +202,7 @@ class ExpressionSelector:
 
         # 3. 构建prompt（只包含情境，不包含完整的表达方式）
         prompt = (await global_prompt_manager.get_prompt_async("expression_evaluation_prompt")).format(
-            bot_name=global_config.bot.nickname,
+            bot_name=get_global_config_obj().bot.nickname,
             chat_observe_info=chat_info,
             all_situations=all_situations_str,
             min_num=min_num,

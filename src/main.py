@@ -13,7 +13,7 @@ from src.chat.message_receive.chat_stream import get_chat_manager
 from src.chat.heart_flow.heartflow import heartflow
 from src.chat.message_receive.message_sender import message_manager
 from src.chat.message_receive.storage import MessageStorage
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.message_receive.bot import chat_bot
 from src.common.logger import get_logger
 from src.individuality.individuality import get_individuality, Individuality
@@ -31,7 +31,7 @@ from src.chat.focus_chat.hfc_performance_logger import HFCPerformanceLogger
 from src.common.message import get_global_api
 
 # 条件导入记忆系统
-if global_config.memory.enable_memory:
+if get_global_config_obj().memory.enable_memory:
     from src.chat.memory_system.Hippocampus import hippocampus_manager
 
 # 导入日程表管理器
@@ -56,6 +56,7 @@ from src.config.hot_update import hot_update_config_task
 
 class MainSystem:
     def __init__(self):
+        global_config = get_global_config_obj()
         # 根据配置条件性地初始化记忆系统
         if global_config.memory.enable_memory:
             self.hippocampus_manager = hippocampus_manager
@@ -79,6 +80,7 @@ class MainSystem:
 
     async def initialize(self):
         """初始化系统组件"""
+        global_config = get_global_config_obj()
         logger.debug(f"正在唤醒{global_config.bot.nickname}......")
 
 
@@ -93,7 +95,6 @@ class MainSystem:
 
         # 清理HFC旧日志文件（保持目录大小在50MB以内）
         logger.info("开始清理HFC旧日志文件...")
-        HFCPerformanceLogger.cleanup_old_logs(max_size_mb=50.0)
         logger.info("HFC日志清理完成")
 
         # 添加在线时间统计任务
@@ -137,7 +138,7 @@ class MainSystem:
         logger.info("聊天管理器初始化成功")
 
         # 根据配置条件性地初始化记忆系统
-        if global_config.memory.enable_memory:
+        if get_global_config_obj().memory.enable_memory:
             if self.hippocampus_manager:
                 self.hippocampus_manager.initialize()
                 logger.info("记忆系统初始化成功")
@@ -151,10 +152,10 @@ class MainSystem:
 
         # 初始化个体特征
         await self.individuality.initialize(
-            bot_nickname=global_config.bot.nickname,
-            personality_core=global_config.personality.personality_core,
-            personality_sides=global_config.personality.personality_sides,
-            identity_detail=global_config.identity.identity_detail,
+            bot_nickname=get_global_config_obj().bot.nickname,
+            personality_core=get_global_config_obj().personality.personality_core,
+            personality_sides=get_global_config_obj().personality.personality_sides,
+            identity_detail=get_global_config_obj().identity.identity_detail,
         )
         logger.info("个体特征初始化成功")
 
@@ -216,7 +217,7 @@ class MainSystem:
                 logger.error(f"配置文件热更新任务启动失败: {e}")
 
             # 根据配置条件性地添加记忆系统相关任务
-            if global_config.memory.enable_memory and self.hippocampus_manager:
+            if get_global_config_obj().memory.enable_memory and self.hippocampus_manager:
                 tasks.extend(
                     [
                         self.build_memory_task(),
@@ -232,22 +233,22 @@ class MainSystem:
     async def build_memory_task(self):
         """记忆构建任务"""
         while True:
-            await asyncio.sleep(global_config.memory.memory_build_interval)
+            await asyncio.sleep(get_global_config_obj().memory.memory_build_interval)
             logger.info("正在进行记忆构建")
             await self.hippocampus_manager.build_memory()
 
     async def forget_memory_task(self):
         """记忆遗忘任务"""
         while True:
-            await asyncio.sleep(global_config.memory.forget_memory_interval)
+            await asyncio.sleep(get_global_config_obj().memory.forget_memory_interval)
             logger.info("[记忆遗忘] 开始遗忘记忆...")
-            await self.hippocampus_manager.forget_memory(percentage=global_config.memory.memory_forget_percentage)
+            await self.hippocampus_manager.forget_memory(percentage=get_global_config_obj().memory.memory_forget_percentage)
             logger.info("[记忆遗忘] 记忆遗忘完成")
 
     async def consolidate_memory_task(self):
         """记忆整合任务"""
         while True:
-            await asyncio.sleep(global_config.memory.consolidate_memory_interval)
+            await asyncio.sleep(get_global_config_obj().memory.consolidate_memory_interval)
             logger.info("[记忆整合] 开始整合记忆...")
             await self.hippocampus_manager.consolidate_memory()
             logger.info("[记忆整合] 记忆整合完成")
@@ -257,8 +258,8 @@ class MainSystem:
         """学习并存储表达方式任务"""
         expression_learner = get_expression_learner()
         while True:
-            await asyncio.sleep(global_config.expression.learning_interval)
-            if global_config.expression.enable_expression_learning:
+            await asyncio.sleep(get_global_config_obj().expression.learning_interval)
+            if get_global_config_obj().expression.enable_expression_learning:
                 logger.info("[表达方式学习] 开始学习表达方式...")
                 await expression_learner.learn_and_store_expression()
                 logger.info("[表达方式学习] 表达方式学习完成")

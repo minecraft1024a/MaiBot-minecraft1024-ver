@@ -9,7 +9,7 @@ from src.chat.utils.utils import calculate_typing_time
 from rich.traceback import install
 import traceback
 from src.schedule_system.maibot_mind_manager import MaibotMindManager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 install(extra_lines=3)
 
@@ -17,7 +17,7 @@ install(extra_lines=3)
 logger = get_logger("sender")
 
 # 全局mind_manager实例，避免重复初始化
-_mind_manager = MaibotMindManager(model_config=global_config.model.schedule)
+_mind_manager = MaibotMindManager(model_config=get_global_config_obj().model.schedule)
 
 
 async def send_message(message: MessageSending) -> bool:

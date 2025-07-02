@@ -11,7 +11,7 @@ from src.common.logger import get_logger
 
 # 导入API模块 - 标准Python包方式
 from src.plugin_system.apis import message_api, llm_api
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from json_repair import repair_json
 
 logger = get_logger("core_actions")
@@ -107,13 +107,13 @@ class NoReplyAction(BaseAction):
                 current_time = time.time()
                 elapsed_time = current_time - start_time
 
-                if global_config.chat.chat_mode == "auto":
+                if get_global_config_obj().chat.chat_mode == "auto":
                     # 检查是否超时
                     if elapsed_time >= self._max_timeout:
                         logger.info(f"{self.log_prefix} 达到最大等待时间{self._max_timeout}秒，退出专注模式")
                         # 标记退出专注模式
                         self.action_data["_system_command"] = "stop_focus_chat"
-                        exit_reason = f"{global_config.bot.nickname}（你）等待了{self._max_timeout}秒，感觉群里没有新内容，决定退出专注模式，稍作休息"
+                        exit_reason = f"{get_global_config_obj().bot.nickname}（你）等待了{self._max_timeout}秒，感觉群里没有新内容，决定退出专注模式，稍作休息"
                         await self.store_action_info(
                             action_build_into_prompt=True,
                             action_prompt_display=exit_reason,
@@ -128,7 +128,7 @@ class NoReplyAction(BaseAction):
                         # 标记退出专注模式
                         self.action_data["_system_command"] = "stop_focus_chat"
                         exit_reason = (
-                            f"{global_config.bot.nickname}（你）发现自己回复太频繁了，决定退出专注模式，稍作休息"
+                            f"{get_global_config_obj().bot.nickname}（你）发现自己回复太频繁了，决定退出专注模式，稍作休息"
                         )
                         await self.store_action_info(
                             action_build_into_prompt=True,
@@ -143,7 +143,7 @@ class NoReplyAction(BaseAction):
                         logger.info(f"{self.log_prefix} 检测到过去10分钟完全没有发言，退出专注模式")
                         # 标记退出专注模式
                         self.action_data["_system_command"] = "stop_focus_chat"
-                        exit_reason = f"{global_config.bot.nickname}（你）发现自己过去10分钟完全没有说话，感觉可能不太活跃，决定退出专注模式"
+                        exit_reason = f"{get_global_config_obj().bot.nickname}（你）发现自己过去10分钟完全没有说话，感觉可能不太活跃，决定退出专注模式"
                         await self.store_action_info(
                             action_build_into_prompt=True,
                             action_prompt_display=exit_reason,
@@ -159,7 +159,7 @@ class NoReplyAction(BaseAction):
                 # 如果累计消息数量达到阈值，直接结束等待
                 if new_message_count >= self._auto_exit_message_count:
                     logger.info(f"{self.log_prefix} 累计消息数量达到{new_message_count}条，直接结束等待")
-                    exit_reason = f"{global_config.bot.nickname}（你）看到了{new_message_count}条新消息，可以考虑一下是否要进行回复"
+                    exit_reason = f"{get_global_config_obj().bot.nickname}（你）看到了{new_message_count}条新消息，可以考虑一下是否要进行回复"
                     await self.store_action_info(
                         action_build_into_prompt=True,
                         action_prompt_display=exit_reason,
@@ -198,11 +198,11 @@ class NoReplyAction(BaseAction):
                         )
 
                         # 获取身份信息
-                        bot_name = global_config.bot.nickname
+                        bot_name = get_global_config_obj().bot.nickname
                         bot_nickname = ""
-                        if global_config.bot.alias_names:
-                            bot_nickname = f",也有人叫你{','.join(global_config.bot.alias_names)}"
-                        bot_core_personality = global_config.personality.personality_core
+                        if get_global_config_obj().bot.alias_names:
+                            bot_nickname = f",也有人叫你{','.join(get_global_config_obj().bot.alias_names)}"
+                        bot_core_personality = get_global_config_obj().personality.personality_core
                         identity_block = f"你的名字是{bot_name}{bot_nickname}，你{bot_core_personality}"
 
                         # 构建判断历史字符串（最多显示3条）
@@ -232,7 +232,7 @@ class NoReplyAction(BaseAction):
                             # 手动过滤bot自己的消息
                             bot_message_count = 0
                             if all_messages_10min:
-                                user_id = global_config.bot.qq_account
+                                user_id = get_global_config_obj().bot.qq_account
 
                                 for message in all_messages_10min:
                                     # 检查消息发送者是否是bot
@@ -241,7 +241,7 @@ class NoReplyAction(BaseAction):
                                     if sender_id == user_id:
                                         bot_message_count += 1
 
-                            talk_frequency_threshold = global_config.chat.get_current_talk_frequency(self.chat_id) * 10
+                            talk_frequency_threshold = get_global_config_obj().chat.get_current_talk_frequency(self.chat_id) * 10
 
                             if bot_message_count > talk_frequency_threshold:
                                 over_count = bot_message_count - talk_frequency_threshold
@@ -358,7 +358,7 @@ class NoReplyAction(BaseAction):
                                     if judge_result == "需要回复":
                                         logger.info(f"{self.log_prefix} 模型判断需要回复，结束等待")
 
-                                        full_prompt = f"{global_config.bot.nickname}（你）的想法是：{reason}"
+                                        full_prompt = f"{get_global_config_obj().bot.nickname}（你）的想法是：{reason}"
                                         await self.store_action_info(
                                             action_build_into_prompt=True,
                                             action_prompt_display=full_prompt,
@@ -415,7 +415,7 @@ class NoReplyAction(BaseAction):
         """
         try:
             # 只在auto模式下进行频率检查
-            if global_config.chat.chat_mode != "auto":
+            if get_global_config_obj().chat.chat_mode != "auto":
                 return False
 
             # 获取检查窗口内的所有消息
@@ -431,7 +431,7 @@ class NoReplyAction(BaseAction):
 
             # 统计bot自己的回复数量
             bot_message_count = 0
-            user_id = global_config.bot.qq_account
+            user_id = get_global_config_obj().bot.qq_account
 
             for message in all_messages:
                 sender_id = message.get("user_id", "")
@@ -443,18 +443,18 @@ class NoReplyAction(BaseAction):
             current_frequency = bot_message_count / window_minutes
 
             # 计算阈值频率：使用 exit_focus_threshold * 1.5
-            threshold_multiplier = global_config.chat.exit_focus_threshold * 1.5
-            threshold_frequency = global_config.chat.get_current_talk_frequency(self.chat_id) * threshold_multiplier
+            threshold_multiplier = get_global_config_obj().chat.exit_focus_threshold * 1.5
+            threshold_frequency = get_global_config_obj().chat.get_current_talk_frequency(self.chat_id) * threshold_multiplier
 
             # 判断是否超过阈值
             if current_frequency > threshold_frequency:
                 logger.info(
-                    f"{self.log_prefix} 回复频率检查：当前频率 {current_frequency:.2f}/分钟，超过阈值 {threshold_frequency:.2f}/分钟 (exit_threshold={global_config.chat.exit_focus_threshold} * 1.5)，准备退出专注模式"
+                    f"{self.log_prefix} 回复频率检查：当前频率 {current_frequency:.2f}/分钟，超过阈值 {threshold_frequency:.2f}/分钟 (exit_threshold={get_global_config_obj().chat.exit_focus_threshold} * 1.5)，准备退出专注模式"
                 )
                 return True
             else:
                 logger.debug(
-                    f"{self.log_prefix} 回复频率检查：当前频率 {current_frequency:.2f}/分钟，未超过阈值 {threshold_frequency:.2f}/分钟 (exit_threshold={global_config.chat.exit_focus_threshold} * 1.5)"
+                    f"{self.log_prefix} 回复频率检查：当前频率 {current_frequency:.2f}/分钟，未超过阈值 {threshold_frequency:.2f}/分钟 (exit_threshold={get_global_config_obj().chat.exit_focus_threshold} * 1.5)"
                 )
                 return False
 
@@ -473,7 +473,7 @@ class NoReplyAction(BaseAction):
         """
         try:
             # 只在auto模式下进行检查
-            if global_config.chat.chat_mode != "auto":
+            if get_global_config_obj().chat.chat_mode != "auto":
                 return False
 
             # 获取过去10分钟的所有消息
@@ -490,7 +490,7 @@ class NoReplyAction(BaseAction):
 
             # 统计bot自己的回复数量
             bot_message_count = 0
-            user_id = global_config.bot.qq_account
+            user_id = get_global_config_obj().bot.qq_account
 
             for message in all_messages:
                 sender_id = message.get("user_id", "")

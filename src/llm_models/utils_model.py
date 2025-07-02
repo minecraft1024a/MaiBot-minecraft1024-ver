@@ -12,7 +12,7 @@ import io
 import os
 from src.common.database.database import db  # 确保 db 被导入用于 create_tables
 from src.common.database.database_model import LLMUsage  # 导入 LLMUsage 模型
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.tcp_connector import get_tcp_connector
 from rich.traceback import install
 import threading
@@ -149,7 +149,7 @@ class LLMRequest:
         self.stream = model.get("stream", False)
         self.pri_in = model.get("pri_in", 0)
         self.pri_out = model.get("pri_out", 0)
-        self.max_tokens = model.get("max_tokens", global_config.model.model_max_output_length)
+        self.max_tokens = model.get("max_tokens", get_global_config_obj().model.model_max_output_length)
         # print(f"max_tokens: {self.max_tokens}")
 
         # 获取数据库实例
@@ -296,7 +296,7 @@ class LLMRequest:
             payload["max_tokens"] = self.max_tokens
 
         # if "max_tokens" not in payload and "max_completion_tokens" not in payload:
-        # payload["max_tokens"] = global_config.model.model_max_output_length
+        # payload["max_tokens"] = get_global_config_obj().model.model_max_output_length
         # 如果 payload 中依然存在 max_tokens 且需要转换，在这里进行再次检查
         if self.model_name.lower() in self.MODELS_NEEDING_TRANSFORMATION and "max_tokens" in payload:
             payload["max_completion_tokens"] = payload.pop("max_tokens")
@@ -558,11 +558,11 @@ class LLMRequest:
                 logger.warning(f"检测到403错误，模型从 {old_model_name} 降级为 {self.model_name}")
 
                 # 对全局配置进行更新
-                if global_config.model.replyer_2.get("name") == old_model_name:
-                    global_config.model.replyer_2["name"] = self.model_name
+                if get_global_config_obj().model.replyer_2.get("name") == old_model_name:
+                    get_global_config_obj().model.replyer_2["name"] = self.model_name
                     logger.warning(f"将全局配置中的 llm_normal 模型临时降级至{self.model_name}")
-                if global_config.model.replyer_1.get("name") == old_model_name:
-                    global_config.model.replyer_1["name"] = self.model_name
+                if get_global_config_obj().model.replyer_1.get("name") == old_model_name:
+                    get_global_config_obj().model.replyer_1["name"] = self.model_name
                     logger.warning(f"将全局配置中的 llm_reasoning 模型临时降级至{self.model_name}")
 
                 if payload and "model" in payload:
@@ -711,7 +711,7 @@ class LLMRequest:
             payload["max_tokens"] = self.max_tokens
 
         # if "max_tokens" not in payload and "max_completion_tokens" not in payload:
-        # payload["max_tokens"] = global_config.model.model_max_output_length
+        # payload["max_tokens"] = get_global_config_obj().model.model_max_output_length
         # 如果 payload 中依然存在 max_tokens 且需要转换，在这里进行再次检查
         if self.model_name.lower() in self.MODELS_NEEDING_TRANSFORMATION and "max_tokens" in payload:
             payload["max_completion_tokens"] = payload.pop("max_tokens")

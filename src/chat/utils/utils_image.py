@@ -12,7 +12,7 @@ import asyncio
 
 from src.common.database.database import db
 from src.common.database.database_model import Images, ImageDescriptions
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.llm_models.utils_model import LLMRequest
 
 from src.common.logger import get_logger
@@ -38,7 +38,7 @@ class ImageManager:
             self._ensure_image_dir()
 
             self._initialized = True
-            self._llm = LLMRequest(model=global_config.model.vlm, temperature=0.4, max_tokens=300, request_type="image")
+            self._llm = LLMRequest(model=get_global_config_obj().model.vlm, temperature=0.4, max_tokens=300, request_type="image")
 
             try:
                 db.connect(reuse_if_open=True)

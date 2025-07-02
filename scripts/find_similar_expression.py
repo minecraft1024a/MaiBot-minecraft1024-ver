@@ -14,7 +14,7 @@ import re
 from datetime import datetime
 import random
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 
 def clean_group_name(name: str) -> str:
@@ -126,7 +126,7 @@ async def find_similar_expressions_embedding(
         texts = [f"{expr['situation']} {expr['style']}" for expr in expressions]
 
     # 获取嵌入向量
-    llm_request = LLMRequest(global_config.model.embedding)
+    llm_request = LLMRequest(get_global_config_obj().model.embedding)
     text_embeddings = []
     for text in texts:
         embedding = await llm_request.get_embedding(text)

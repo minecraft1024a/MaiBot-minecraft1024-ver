@@ -2,15 +2,15 @@ import aiohttp
 import base64
 import os
 from src.common.logger import get_logger
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 # 从配置文件中获取API相关信息
 logger = get_logger("voice_transcribe")
 
 SILICONFLOW_API_URL = "https://api.siliconflow.cn/v1/audio/transcriptions"
 SILICONFLOW_MODEL = "FunAudioLLM/SenseVoiceSmall"
 try:
-    SILICONFLOW_TOKEN = (global_config.model.siliconflow_token)  # 建议通过config注入token
-except AttributeError:
+    SILICONFLOW_TOKEN = (get_global_config_obj().model.siliconflow_token)  # 建议通过config注入token
+except (AttributeError, KeyError):
     logger.warning("未配置SILICONFLOW_TOKEN，无法进行语音转写！请在配置文件中设置model.siliconflow_token")
     SILICONFLOW_TOKEN = None
 

@@ -2,7 +2,7 @@ import time
 from typing import Tuple, Optional  # 增加了 Optional
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.experimental.PFC.chat_observer import ChatObserver
 from src.experimental.PFC.pfc_utils import get_items_from_json
 from src.individuality.individuality import get_individuality
@@ -108,12 +108,12 @@ class ActionPlanner:
 
     def __init__(self, stream_id: str, private_name: str):
         self.llm = LLMRequest(
-            model=global_config.llm_PFC_action_planner,
-            temperature=global_config.llm_PFC_action_planner["temp"],
+            model=get_global_config_obj().llm_PFC_action_planner,
+            temperature=get_global_config_obj().llm_PFC_action_planner["temp"],
             request_type="action_planning",
         )
         self.personality_info = get_individuality().get_prompt(x_person=2, level=3)
-        self.name = global_config.bot.nickname
+        self.name = get_global_config_obj().bot.nickname
         self.private_name = private_name
         self.chat_observer = ChatObserver.get_instance(stream_id, private_name)
         # self.action_planner_info = ActionPlannerInfo() # 移除未使用的变量
@@ -139,7 +139,7 @@ class ActionPlanner:
         # (这部分逻辑不变)
         time_since_last_bot_message_info = ""
         try:
-            bot_id = str(global_config.bot.qq_account)
+            bot_id = str(get_global_config_obj().bot.qq_account)
             if hasattr(observation_info, "chat_history") and observation_info.chat_history:
                 for i in range(len(observation_info.chat_history) - 1, -1, -1):
                     msg = observation_info.chat_history[i]

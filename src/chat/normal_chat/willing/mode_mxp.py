@@ -19,7 +19,7 @@ Mxp 模式：梦溪畔独家赞助
 下下策是询问一个菜鸟（@梦溪畔）
 """
 
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from .willing_manager import BaseWillingManager
 from typing import Dict
 import asyncio
@@ -174,7 +174,7 @@ class MxpWillingManager(BaseWillingManager):
             probability = self._willing_to_probability(current_willing)
 
             if w_info.is_emoji:
-                probability *= global_config.normal_chat.emoji_response_penalty
+                probability *= get_global_config_obj().normal_chat.emoji_response_penalty
 
             if w_info.is_picid:
                 probability = 0  # picid格式消息直接不回复

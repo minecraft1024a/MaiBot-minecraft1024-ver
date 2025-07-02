@@ -14,7 +14,7 @@ import re
 
 from src.common.database.database_model import Emoji
 from src.common.database.database import db as peewee_db
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.utils.utils_image import image_path_to_base64, get_image_manager
 from src.llm_models.utils_model import LLMRequest
 from src.common.logger import get_logger
@@ -304,11 +304,11 @@ def _ensure_emoji_dir() -> None:
 async def clear_temp_emoji() -> None:
     """最大缓存数量和批量清理数量可自定义
     清理/data/emoji、/data/image和/data/images目录下的所有文件
-    当目录中文件数超过最大缓存数量(global_config.emoji.max_reg_num)时，会全部删除
+    当目录中文件数超过最大缓存数量(get_global_config_obj().emoji.max_reg_num)时，会全部删除
     """
 
     logger.info("[清理] 开始清理缓存...")
-    max_cache_num = getattr(global_config.emoji, 'max_cache_num', 100)
+    max_cache_num = getattr(get_global_config_obj().emoji, 'max_cache_num', 100)
     for need_clear in (
         os.path.join(BASE_DIR, "emoji"),
         os.path.join(BASE_DIR, "image"),
@@ -381,15 +381,15 @@ class EmojiManager:
 
         self._scan_task = None
 
-        self.vlm = LLMRequest(model=global_config.model.vlm, temperature=0.3, max_tokens=1000, request_type="emoji")
+        self.vlm = LLMRequest(model=get_global_config_obj().model.vlm, temperature=0.3, max_tokens=1000, request_type="emoji")
         self.llm_emotion_judge = LLMRequest(
-            model=global_config.model.utils, max_tokens=600, request_type="emoji"
+            model=get_global_config_obj().model.utils, max_tokens=600, request_type="emoji"
         )  # 更高的温度，更少的token（后续可以根据情绪来调整温度）
 
         self.emoji_num = 0
-        self.emoji_num_max = global_config.emoji.max_reg_num
-        self.scan_batch_size = getattr(global_config.emoji, 'scan_batch_size', 20)  # 新增：自定义扫描批量数量，默认20
-        self.emoji_num_max_reach_deletion = global_config.emoji.do_replace
+        self.emoji_num_max = get_global_config_obj().emoji.max_reg_num
+        self.scan_batch_size = getattr(get_global_config_obj().emoji, 'scan_batch_size', 20)  # 新增：自定义扫描批量数量，默认20
+        self.emoji_num_max_reach_deletion = get_global_config_obj().emoji.do_replace
         self.emoji_objects: list[MaiEmoji] = []  # 存储MaiEmoji对象的列表，使用类型注解明确列表元素类型
 
         logger.info(f"启动表情包管理器，最大缓存数量: {self.emoji_num_max}，批量扫描数量: {self.scan_batch_size}")
@@ -601,19 +601,19 @@ class EmojiManager:
                 logger.warning(f"[警告] 表情包目录不存在: {EMOJI_DIR}")
                 os.makedirs(EMOJI_DIR, exist_ok=True)
                 logger.info(f"[创建] 已创建表情包目录: {EMOJI_DIR}")
-                await asyncio.sleep(global_config.emoji.check_interval * 60)
+                await asyncio.sleep(get_global_config_obj().emoji.check_interval * 60)
                 continue
 
             # 检查目录是否为空
             files = os.listdir(EMOJI_DIR)
             if not files:
                 logger.warning(f"[警告] 表情包目录为空: {EMOJI_DIR}")
-                await asyncio.sleep(global_config.emoji.check_interval * 60)
+                await asyncio.sleep(get_global_config_obj().emoji.check_interval * 60)
                 continue
 
             # 检查是否需要处理表情包(数量超过最大值或不足)
-            if global_config.emoji.steal_emoji and (
-                (self.emoji_num > self.emoji_num_max and global_config.emoji.do_replace)
+            if get_global_config_obj().emoji.steal_emoji and (
+                (self.emoji_num > self.emoji_num_max and get_global_config_obj().emoji.do_replace)
                 or (self.emoji_num < self.emoji_num_max)
             ):
                 try:
@@ -646,7 +646,7 @@ class EmojiManager:
                 except Exception as e:
                     logger.error(f"[错误] 扫描表情包目录失败: {str(e)}")
 
-            await asyncio.sleep(global_config.emoji.check_interval * 60)
+            await asyncio.sleep(get_global_config_obj().emoji.check_interval * 60)
 
     async def get_all_emoji_from_db(self) -> None:
         """获取所有表情包并初始化为MaiEmoji类对象，更新 self.emoji_objects"""
@@ -785,7 +785,7 @@ class EmojiManager:
 
             # 构建提示词
             prompt = (
-                f"{global_config.bot.nickname}的表情包存储已满({self.emoji_num}/{self.emoji_num_max})，"
+                f"{get_global_config_obj().bot.nickname}的表情包存储已满({self.emoji_num}/{self.emoji_num_max})，"
                 f"需要决定是否删除一个旧表情包来为新表情包腾出空间。\n\n"
                 f"新表情包信息：\n"
                 f"描述: {new_emoji.description}\n\n"
@@ -871,10 +871,10 @@ class EmojiManager:
                 description, _ = await self.vlm.generate_response_for_image(prompt, image_base64, image_format)
 
             # 审核表情包
-            if global_config.emoji.content_filtration:
+            if get_global_config_obj().emoji.content_filtration:
                 prompt = f'''
                     这是一个表情包，请对这个表情包进行审核，标准如下：
-                    1. 必须符合"{global_config.emoji.filtration_prompt}"的要求
+                    1. 必须符合"{get_global_config_obj().emoji.filtration_prompt}"的要求
                     2. 不能是色情、暴力、等违法违规内容，必须符合公序良俗
                     3. 不能是任何形式的截图，聊天记录或视频截图
                     4. 不要出现5个以上文字

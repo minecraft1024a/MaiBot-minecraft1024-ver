@@ -1,7 +1,7 @@
 from src.common.logger import get_logger
 from src.chat.message_receive.message import MessageRecv
 from src.chat.message_receive.storage import MessageStorage
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.message_receive.chat_stream import ChatStream
 
 from maim_message import UserInfo
@@ -20,7 +20,7 @@ class MessageProcessor:
     @staticmethod
     def _check_ban_words(text: str, chat: ChatStream, userinfo: UserInfo) -> bool:
         """检查消息中是否包含过滤词"""
-        for word in global_config.message_receive.ban_words:
+        for word in get_global_config_obj().message_receive.ban_words:
             if word in text:
                 logger.info(
                     f"[{chat.group_info.group_name if chat.group_info else '私聊'}]{userinfo.user_nickname}:{text}"
@@ -32,7 +32,7 @@ class MessageProcessor:
     @staticmethod
     def _check_ban_regex(text: str, chat: ChatStream, userinfo: UserInfo) -> bool:
         """检查消息是否匹配过滤正则表达式"""
-        for pattern in global_config.message_receive.ban_msgs_regex:
+        for pattern in get_global_config_obj().message_receive.ban_msgs_regex:
             if re.search(pattern, text):
                 chat_name = chat.group_info.group_name if chat.group_info else "私聊"
                 logger.info(f"[{chat_name}]{userinfo.user_nickname}:{text}")

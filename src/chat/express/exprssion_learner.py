@@ -3,7 +3,7 @@ import random
 from typing import List, Dict, Optional, Any, Tuple
 from src.common.logger import get_logger
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.utils.chat_message_builder import get_raw_msg_by_timestamp_random, build_anonymous_messages
 from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
 import os
@@ -68,7 +68,7 @@ class ExpressionLearner:
     def __init__(self) -> None:
         # TODO: API-Adapter修改标记
         self.express_learn_model: LLMRequest = LLMRequest(
-            model=global_config.model.replyer_1,
+            model=get_global_config_obj().model.replyer_1,
             temperature=0.2,
             request_type="expressor.learner",
         )
@@ -78,7 +78,7 @@ class ExpressionLearner:
         读取/data/expression/learnt/{chat_id}/expressions.json和/data/expression/personality/expressions.json
         返回(learnt_expressions, personality_expressions)
         """
-        expression_groups = global_config.expression.expression_groups
+        expression_groups = get_global_config_obj().expression.expression_groups
         chat_ids_to_load = [chat_id]
 
         # 获取当前chat_id的类型

@@ -34,7 +34,7 @@ from src.chat.utils.chat_message_builder import build_readable_messages
 from src.common.database.database_model import Messages
 from src.common.logger import get_logger
 from src.common.database.database import db
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.llm_models.utils_model import LLMRequest
 from src.person_info.person_info import PersonInfoManager, get_person_info_manager
 
@@ -93,8 +93,8 @@ async def build_name_mapping(messages: List[Dict[str, Any]], target_person_name:
         replace_person_name = await person_info_manager.get_value(replace_person_id, "person_name")
 
         # 跳过机器人自己
-        if replace_user_id == global_config.bot.qq_account:
-            name_mapping[f"{global_config.bot.nickname}"] = f"{global_config.bot.nickname}"
+        if replace_user_id == get_global_config_obj().bot.qq_account:
+            name_mapping[f"{get_global_config_obj().bot.nickname}"] = f"{get_global_config_obj().bot.nickname}"
             continue
 
         # 跳过目标用户
@@ -339,11 +339,11 @@ def check_similarity(text1, text2, tfidf_threshold=0.5, seq_threshold=0.6):
 class MessageRetrievalScript:
     def __init__(self):
         """初始化脚本"""
-        self.bot_qq = str(global_config.bot.qq_account)
+        self.bot_qq = str(get_global_config_obj().bot.qq_account)
 
         # 初始化LLM请求器，和relationship_manager一样
         self.relationship_llm = LLMRequest(
-            model=global_config.model.relation,
+            model=get_global_config_obj().model.relation,
             request_type="relationship",
         )
 
@@ -419,12 +419,12 @@ class MessageRetrievalScript:
             logger.warning(f"无法获取用户 {person_id} 的person_name")
             return
 
-        alias_str = ", ".join(global_config.bot.alias_names)
+        alias_str = ", ".join(get_global_config_obj().bot.alias_names)
         current_time = datetime.fromtimestamp(segment_time).strftime("%Y-%m-%d %H:%M:%S")
 
         prompt = f"""
-你的名字是{global_config.bot.nickname}，{global_config.bot.nickname}的别名是{alias_str}。
-请不要混淆你自己和{global_config.bot.nickname}和{person_name}。
+你的名字是{get_global_config_obj().bot.nickname}，{get_global_config_obj().bot.nickname}的别名是{alias_str}。
+请不要混淆你自己和{get_global_config_obj().bot.nickname}和{person_name}。
 请你基于用户 {person_name}(昵称:{nickname}) 的最近发言，总结出其中是否有有关{person_name}的内容引起了你的兴趣，或者有什么需要你记忆的点，或者对你友好或者不友好的点。
 如果没有，就输出none
 
@@ -598,7 +598,7 @@ class MessageRetrievalScript:
             if len(forgotten_points) >= 10:
                 print(f"forgotten_points: {forgotten_points}")
                 # 构建压缩总结提示词
-                alias_str = ", ".join(global_config.bot.alias_names)
+                alias_str = ", ".join(get_global_config_obj().bot.alias_names)
 
                 # 按时间排序forgotten_points
                 forgotten_points.sort(key=lambda x: x[2])
@@ -611,8 +611,8 @@ class MessageRetrievalScript:
                 impression = await person_info_manager.get_value(person_id, "impression") or ""
 
                 compress_prompt = f"""
-你的名字是{global_config.bot.nickname}，{global_config.bot.nickname}的别名是{alias_str}。
-请不要混淆你自己和{global_config.bot.nickname}和{person_name}。
+你的名字是{get_global_config_obj().bot.nickname}，{get_global_config_obj().bot.nickname}的别名是{alias_str}。
+请不要混淆你自己和{get_global_config_obj().bot.nickname}和{person_name}。
 
 请根据你对ta过去的了解，和ta最近的行为，修改，整合，原有的了解，总结出对用户 {person_name}(昵称:{nickname})新的了解。
 

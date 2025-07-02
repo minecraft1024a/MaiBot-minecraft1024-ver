@@ -11,7 +11,7 @@ from src.chat.focus_chat.heartFC_chat import HeartFChatting
 from src.chat.normal_chat.normal_chat import NormalChat
 from src.chat.heart_flow.chat_state_info import ChatState, ChatStateInfo
 from .utils_chat import get_chat_type_and_target_info
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from rich.traceback import install
 
 logger = get_logger("sub_heartflow")
@@ -59,7 +59,7 @@ class SubHeartflow:
         """异步初始化方法，创建兴趣流并确定聊天类型"""
 
         # 根据配置决定初始状态
-        if global_config.chat.chat_mode == "focus":
+        if get_global_config_obj().chat.chat_mode == "focus":
             logger.debug(f"{self.log_prefix} 配置为 focus 模式，将直接尝试进入 FOCUSED 状态。")
             await self.change_chat_state(ChatState.FOCUSED)
         else:  # "auto" 或其他模式保持原有逻辑或默认为 NORMAL

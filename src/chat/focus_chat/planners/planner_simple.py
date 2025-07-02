@@ -3,7 +3,7 @@ import traceback
 from typing import List, Dict, Any, Optional
 from rich.traceback import install
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.focus_chat.info.info_base import InfoBase
 from src.chat.focus_chat.info.obs_info import ObsInfo
 from src.chat.focus_chat.info.action_info import ActionInfo
@@ -81,12 +81,12 @@ class ActionPlanner(BasePlanner):
         super().__init__(log_prefix, action_manager)
         # LLM规划器配置
         self.planner_llm = LLMRequest(
-            model=global_config.model.planner,
+            model=get_global_config_obj().model.planner,
             request_type="focus.planner",  # 用于动作规划
         )
 
         self.utils_llm = LLMRequest(
-            model=global_config.model.utils_small,
+            model=get_global_config_obj().model.utils_small,
             request_type="focus.planner",  # 用于动作规划
         )
 
@@ -365,12 +365,12 @@ class ActionPlanner(BasePlanner):
             # 获取当前时间
             time_block = f"当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-            bot_name = global_config.bot.nickname
-            if global_config.bot.alias_names:
-                bot_nickname = f",也有人叫你{','.join(global_config.bot.alias_names)}"
+            bot_name = get_global_config_obj().bot.nickname
+            if get_global_config_obj().bot.alias_names:
+                bot_nickname = f",也有人叫你{','.join(get_global_config_obj().bot.alias_names)}"
             else:
                 bot_nickname = ""
-            bot_core_personality = global_config.personality.personality_core
+            bot_core_personality = get_global_config_obj().personality.personality_core
             indentify_block = f"你的名字是{bot_name}{bot_nickname}，你{bot_core_personality}："
 
             # 根据聊天类型选择不同的prompt模板

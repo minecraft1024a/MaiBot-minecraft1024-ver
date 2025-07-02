@@ -2,7 +2,7 @@ import json
 from typing import Dict, Any
 from rich.traceback import install
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.logger import get_logger
 from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
 from src.individuality.individuality import get_individuality
@@ -66,7 +66,7 @@ class NormalChatPlanner:
         self.log_prefix = log_prefix
         # LLM规划器配置
         self.planner_llm = LLMRequest(
-            model=global_config.model.planner,
+            model=get_global_config_obj().model.planner,
             request_type="normal.planner",  # 用于normal_chat动作规划
         )
 
@@ -88,9 +88,9 @@ class NormalChatPlanner:
         try:
             # 设置默认值
             nickname_str = ""
-            for nicknames in global_config.bot.alias_names:
+            for nicknames in get_global_config_obj().bot.alias_names:
                 nickname_str += f"{nicknames},"
-            name_block = f"你的名字是{global_config.bot.nickname},你的昵称有{nickname_str}，有人也会用这些昵称称呼你。"
+            name_block = f"你的名字是{get_global_config_obj().bot.nickname},你的昵称有{nickname_str}，有人也会用这些昵称称呼你。"
 
             personality_block = get_individuality().get_personality_prompt(x_person=2, level=2)
             identity_block = get_individuality().get_identity_prompt(x_person=2, level=2)
@@ -122,7 +122,7 @@ class NormalChatPlanner:
             message_list_before_now = get_raw_msg_before_timestamp_with_chat(
                 chat_id=message.chat_stream.stream_id,
                 timestamp=time.time(),
-                limit=global_config.focus_chat.observation_context_size,
+                limit=get_global_config_obj().focus_chat.observation_context_size,
             )
 
             chat_context = build_readable_messages(

@@ -1,5 +1,5 @@
 from src.chat.memory_system.Hippocampus import hippocampus_manager
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.chat.message_receive.message import MessageRecv
 from src.chat.message_receive.storage import MessageStorage
 from src.chat.heart_flow.heartflow import heartflow
@@ -67,7 +67,7 @@ async def _calculate_interest(message: MessageRecv) -> Tuple[float, bool]:
     is_mentioned, _ = is_mentioned_bot_in_message(message)
     interested_rate = 0.0
 
-    if global_config.memory.enable_memory:
+    if get_global_config_obj().memory.enable_memory:
         with Timer("记忆激活"):
             interested_rate = await hippocampus_manager.get_activate_from_text(
                 message.processed_plain_text,
@@ -102,7 +102,7 @@ def _check_ban_words(text: str, chat: ChatStream, userinfo: UserInfo) -> bool:
     Returns:
         bool: 是否包含过滤词
     """
-    for word in global_config.message_receive.ban_words:
+    for word in get_global_config_obj().message_receive.ban_words:
         if word in text:
             chat_name = chat.group_info.group_name if chat.group_info else "私聊"
             logger.info(f"[{chat_name}]{userinfo.user_nickname}:{text}")
@@ -122,7 +122,7 @@ def _check_ban_regex(text: str, chat: ChatStream, userinfo: UserInfo) -> bool:
     Returns:
         bool: 是否匹配过滤正则
     """
-    for pattern in global_config.message_receive.ban_msgs_regex:
+    for pattern in get_global_config_obj().message_receive.ban_msgs_regex:
         if re.search(pattern, text):
             chat_name = chat.group_info.group_name if chat.group_info else "私聊"
             logger.info(f"[{chat_name}]{userinfo.user_nickname}:{text}")
@@ -181,13 +181,13 @@ class HeartFCMessageReceiver:
             # 7. 日志记录
             mes_name = chat.group_info.group_name if chat.group_info else "私聊"
             # current_time = time.strftime("%H:%M:%S", time.localtime(message.message_info.time))
-            current_talk_frequency = global_config.chat.get_current_talk_frequency(chat.stream_id)
+            current_talk_frequency = get_global_config_obj().chat.get_current_talk_frequency(chat.stream_id)
             logger.info(
                 f"[{mes_name}]{userinfo.user_nickname}:{message.processed_plain_text}[当前回复频率: {current_talk_frequency}]"
             )
 
             # 8. 关系处理
-            if global_config.relationship.enable_relationship:
+            if get_global_config_obj().relationship.enable_relationship:
                 await _process_relationship(message)
 
         except Exception as e:

@@ -1,4 +1,4 @@
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 from src.common.logger import get_logger
 from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
 from src.chat.utils.chat_message_builder import build_readable_messages, get_raw_msg_before_timestamp_with_chat
@@ -126,7 +126,7 @@ class PromptBuilder:
             who_chat_in_group = get_recent_group_speaker(
                 chat_stream.stream_id,
                 (chat_stream.user_info.platform, chat_stream.user_info.user_id) if chat_stream.user_info else None,
-                limit=global_config.normal_chat.max_context_size,
+                limit=get_global_config_obj().normal_chat.max_context_size,
             )
         elif chat_stream.user_info:
             who_chat_in_group.append(
@@ -134,7 +134,7 @@ class PromptBuilder:
             )
 
         relation_prompt = ""
-        if global_config.relationship.enable_relationship:
+        if get_global_config_obj().relationship.enable_relationship:
             for person in who_chat_in_group:
                 relationship_manager = get_relationship_manager()
                 relation_prompt += await relationship_manager.build_relationship_info(person)
@@ -142,7 +142,7 @@ class PromptBuilder:
         mood_prompt = mood_manager.get_mood_prompt()
 
         memory_prompt = ""
-        if global_config.memory.enable_memory:
+        if get_global_config_obj().memory.enable_memory:
             related_memory = await hippocampus_manager.get_memory_from_text(
                 text=message_txt, max_memory_num=2, max_memory_length=2, max_depth=3, fast_retrieval=False
             )
@@ -158,7 +158,7 @@ class PromptBuilder:
         message_list_before_now = get_raw_msg_before_timestamp_with_chat(
             chat_id=chat_stream.stream_id,
             timestamp=time.time(),
-            limit=global_config.focus_chat.observation_context_size,
+            limit=get_global_config_obj().focus_chat.observation_context_size,
         )
         chat_talking_prompt = build_readable_messages(
             message_list_before_now,
@@ -172,7 +172,7 @@ class PromptBuilder:
         message_list_before_now_half = get_raw_msg_before_timestamp_with_chat(
             chat_id=chat_stream.stream_id,
             timestamp=time.time(),
-            limit=global_config.focus_chat.observation_context_size * 0.5,
+            limit=get_global_config_obj().focus_chat.observation_context_size * 0.5,
         )
         chat_talking_prompt_half = build_readable_messages(
             message_list_before_now_half,
@@ -206,13 +206,13 @@ class PromptBuilder:
         keywords_reaction_prompt = ""
         try:
             # 处理关键词规则
-            for rule in global_config.keyword_reaction.keyword_rules:
+            for rule in get_global_config_obj().keyword_reaction.keyword_rules:
                 if any(keyword in message_txt for keyword in rule.keywords):
                     logger.info(f"检测到关键词规则：{rule.keywords}，触发反应：{rule.reaction}")
                     keywords_reaction_prompt += f"{rule.reaction}，"
 
             # 处理正则表达式规则
-            for rule in global_config.keyword_reaction.regex_rules:
+            for rule in get_global_config_obj().keyword_reaction.regex_rules:
                 for pattern_str in rule.regex:
                     try:
                         pattern = re.compile(pattern_str)
@@ -296,8 +296,8 @@ class PromptBuilder:
                 chat_target_2=chat_target_2,
                 chat_talking_prompt=chat_talking_prompt,
                 message_txt=message_txt,
-                bot_name=global_config.bot.nickname,
-                bot_other_names="/".join(global_config.bot.alias_names),
+                bot_name=get_global_config_obj().bot.nickname,
+                bot_other_names="/".join(get_global_config_obj().bot.alias_names),
                 prompt_personality=prompt_personality,
                 mood_prompt=mood_prompt,
                 style_habbits=style_habbits_str,
@@ -321,8 +321,8 @@ class PromptBuilder:
                 prompt_info=prompt_info,
                 chat_talking_prompt=chat_talking_prompt,
                 message_txt=message_txt,
-                bot_name=global_config.bot.nickname,
-                bot_other_names="/".join(global_config.bot.alias_names),
+                bot_name=get_global_config_obj().bot.nickname,
+                bot_other_names="/".join(get_global_config_obj().bot.alias_names),
                 prompt_personality=prompt_personality,
                 mood_prompt=mood_prompt,
                 style_habbits=style_habbits_str,

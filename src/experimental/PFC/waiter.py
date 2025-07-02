@@ -3,7 +3,7 @@ from .chat_observer import ChatObserver
 from .conversation_info import ConversationInfo
 
 # from src.individuality.individuality get_individuality,Individuality # 不再需要
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 import time
 import asyncio
 
@@ -19,7 +19,7 @@ class Waiter:
 
     def __init__(self, stream_id: str, private_name: str):
         self.chat_observer = ChatObserver.get_instance(stream_id, private_name)
-        self.name = global_config.bot.nickname
+        self.name = get_global_config_obj().bot.nickname
         self.private_name = private_name
         # self.wait_accumulated_time = 0 # 不再需要累加计时
 

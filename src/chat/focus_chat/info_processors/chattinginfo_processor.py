@@ -7,7 +7,7 @@ from src.common.logger import get_logger
 from src.chat.heart_flow.observation.chatting_observation import ChattingObservation
 from datetime import datetime
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 
 logger = get_logger("processor")
 
@@ -25,7 +25,7 @@ class ChattingInfoProcessor(BaseProcessor):
         super().__init__()
         # TODO: API-Adapter修改标记
         self.model_summary = LLMRequest(
-            model=global_config.model.utils_small,
+            model=get_global_config_obj().model.utils_small,
             temperature=0.7,
             request_type="focus.observation.chat",
         )

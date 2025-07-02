@@ -1,6 +1,6 @@
 from src.chat.heart_flow.observation.chatting_observation import ChattingObservation
 from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from src.config.config import get_global_config_obj
 import time
 from src.common.logger import get_logger
 from src.individuality.individuality import get_individuality
@@ -42,7 +42,7 @@ class ToolProcessor(BaseProcessor):
         self.subheartflow_id = subheartflow_id
         self.log_prefix = f"[{subheartflow_id}:ToolExecutor] "
         self.llm_model = LLMRequest(
-            model=global_config.model.focus_tool_use,
+            model=get_global_config_obj().model.focus_tool_use,
             request_type="focus.processor.tool",
         )
         self.structured_info = []
