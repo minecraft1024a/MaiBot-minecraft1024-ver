@@ -153,6 +153,13 @@ class MessageRecv(Message):
                     text = await voice_base64_to_text(segment.data)
                     return f"[语音]{text}"
                 return "[发了一段语音，网卡了加载不出来]"
+            elif segment.type == "video":
+                # 视频消息，格式: [视频] http://xxx
+                if isinstance(segment.data, str) and segment.data.startswith("http"):
+                    video_url = segment.data
+                    from src.chat.utils.video_analyze import analyze_video_url
+                    return await analyze_video_url(video_url)
+                return f"[视频] {segment.data}"
             else:
                 return f"[{segment.type}:{str(segment.data)}]"
         except Exception as e:
@@ -165,6 +172,14 @@ class MessageRecv(Message):
         user_info = self.message_info.user_info
         name = f"<{self.message_info.platform}:{user_info.user_id}:{user_info.user_nickname}:{user_info.user_cardname}>"
         return f"[{timestamp}] {name}: {self.processed_plain_text}\n"
+
+    async def _run_in_thread(self, func, *args, **kwargs):
+        """在线程池中运行阻塞函数，兼容异步调用"""
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor() as pool:
+            return await loop.run_in_executor(pool, lambda: func(*args, **kwargs))
 
 
 @dataclass
@@ -235,6 +250,13 @@ class MessageProcessBase(Message):
                     text = await voice_base64_to_text(seg.data)
                     return f"[语音]{text}"
                 return "[语音，网卡了加载不出来]"
+            elif seg.type == "video":
+                # 视频消息，格式: [视频] http://xxx
+                if isinstance(seg.data, str) and seg.data.startswith("http"):
+                    video_url = seg.data
+                    from src.chat.utils.video_analyze import analyze_video_url
+                    return await analyze_video_url(video_url)
+                return f"[视频] 网卡了加载不出来"
             else:
                 return f"[{seg.type}:{str(seg.data)}]"
         except Exception as e:
